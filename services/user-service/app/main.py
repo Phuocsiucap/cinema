@@ -12,9 +12,13 @@ load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Create tables
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    # Startup: Create tables và kiểm tra kết nối
+    await create_tables()
+    connection_ok = await check_database_connection()
+    if not connection_ok:
+        print("WARNING: Database connection check failed!")
+    else:
+        print("Database connection OK")
     yield
     # Shutdown: Dispose engine
     await engine.dispose()

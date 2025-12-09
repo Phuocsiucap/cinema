@@ -5,6 +5,7 @@ import os
 import jwt
 from typing import Optional
 from dotenv import load_dotenv
+import certifi
 
 
 load_dotenv()
@@ -67,6 +68,9 @@ async def proxy(request: Request, path: str, url_service: str, user_id: Optional
     url = url_service + path
     method = request.method.lower()
     headers = dict(request.headers)
+    # Chỉ loại bỏ Host header nếu URL không phải localhost (để tránh vấn đề với external services)
+    if not url_service.startswith("http://localhost"):
+        headers.pop('host', None)
     if user_id:
         headers["x-user-id"] = user_id
     
@@ -76,7 +80,7 @@ async def proxy(request: Request, path: str, url_service: str, user_id: Optional
     # Tăng timeout lên 60 giây để tránh ReadTimeout
     timeout = httpx.Timeout(60.0, connect=10.0)
     
-    async with httpx.AsyncClient(timeout=timeout) as client:
+    async with httpx.AsyncClient(timeout=timeout, verify=certifi.where()) as client:
         resp = await client.request(
             method,
             url,

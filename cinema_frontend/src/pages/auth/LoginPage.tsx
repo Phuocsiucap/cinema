@@ -49,6 +49,20 @@ export function LoginPage() {
     return isValid;
   };
 
+  // Handle redirect after login
+  useEffect(() => {
+    if (user && !isLoading) {
+      console.log('User after login:', user); // Debug log
+      console.log('User role:', user.role); // Debug log
+      
+      if (user.role && user.role.toLowerCase() === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/');
+      }
+    }
+  }, [user, isLoading, navigate]);
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     clearError();
@@ -57,11 +71,7 @@ export function LoginPage() {
 
     try {
       await login(formData);
-      if (user && user.role === 'admin') {
-        navigate('/admin');
-        return;
-      }
-      navigate('/');
+      // Navigation will be handled by useEffect when user state updates
     } catch {
       
     }

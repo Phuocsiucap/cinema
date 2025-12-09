@@ -133,6 +133,7 @@ class Booking(Base):
     showtime_id = Column(String(36), ForeignKey("showtimes.id"), nullable=False)
     
     total_amount = Column(Float, nullable=False)
+    final_amount = Column(Float, nullable=True)  
     status = Column(Enum(BookingStatus), default=BookingStatus.PENDING, nullable=False)
     payment_method = Column(String(50), nullable=True)
     transaction_reference = Column(String(100), nullable=True)

@@ -5,3 +5,4 @@ httpx==0.25.2
 pyjwt==2.8.0
 cloudinary==1.36.0
 python-multipart==0.0.6
+certifi
