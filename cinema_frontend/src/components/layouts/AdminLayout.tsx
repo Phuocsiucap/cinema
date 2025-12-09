@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Film, 
-  // CalendarDays, 
+  CalendarDays, 
   Users, 
   Settings, 
   LogOut,

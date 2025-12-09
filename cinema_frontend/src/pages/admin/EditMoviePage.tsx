@@ -62,8 +62,7 @@ export function EditMoviePage() {
 
   // Poster preview (for uploaded file)
   const [posterPreview, setPosterPreview] = useState<string | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  // const [posterFile, setPosterFile] = useState<File | null>(null);
+  const [posterFile, setPosterFile] = useState<File | null>(null);
 
   // Fetch movie data on mount
   useEffect(() => {
