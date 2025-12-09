@@ -30,7 +30,7 @@ const menuItems = [
   { icon: Tag, label: 'Promotions', path: '/admin/promotions' },
   { icon: DollarSign, label: 'Revenue', path: '/admin/revenue' },
   { icon: Users, label: 'Users', path: '/admin/users' },
-  { icon: Settings, label: 'Settings', path: '/admin/settings' },
+  // { icon: Settings, label: 'Settings', path: '/admin/settings' }, // Temporarily hidden
 ];
 
 export function AdminLayout({ children }: AdminLayoutProps) {

@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { EmailVerification } from './components/EmailVerification';
@@ -10,7 +10,7 @@ import { MoviesPage as PublicMoviesPage, CinemasPage as PublicCinemasPage } from
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      <HashRouter>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/movie/:id" element={<MovieDetailPage />} />
@@ -53,7 +53,7 @@ function App() {
           <Route path="/admin/promotions/edit/:id" element={<ProtectedRoute adminOnly requireVerification={false}><EditPromotionPage /></ProtectedRoute>} />
           <Route path="/admin/revenue" element={<ProtectedRoute adminOnly requireVerification={false}><RevenuePage /></ProtectedRoute>} />
         </Routes>
-      </Router>
+      </HashRouter>
     </AuthProvider>
   );
 }

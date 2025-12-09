@@ -26,7 +26,8 @@ oauth.register(
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
     client_kwargs={
         'scope': 'openid email profile'
-    }
+    },
+    check_state=False
 )
 
 oauth.register(
@@ -37,6 +38,7 @@ oauth.register(
     authorize_url='https://github.com/login/oauth/authorize',
     api_base_url='https://api.github.com/',
     client_kwargs={'scope': 'user:email read:user'},
+    check_state=False
 )
 
 
@@ -47,7 +49,8 @@ oauth.register(
     server_metadata_url='https://login.microsoftonline.com/consumers/v2.0/.well-known/openid-configuration',
     client_kwargs={
         'scope': 'openid email profile',
-    }
+    },
+    check_state=False
 )
    
    
@@ -81,7 +84,7 @@ async def login(auth: schemas.AuthLogin, db: AsyncSession = Depends(database.get
 async def login_google(request: Request):
     redirect_uri = request.url_for('auth_google_callback')
     
-    return await oauth.google.authorize_redirect(request, redirect_uri, state=None)
+    return await oauth.google.authorize_redirect(request, redirect_uri)
 
 @router.get("/google/callback")
 async def auth_google_callback(request: Request, db: AsyncSession = Depends(database.get_db)):
@@ -133,7 +136,7 @@ async def auth_google_callback(request: Request, db: AsyncSession = Depends(data
 @router.get("/github", response_model=schemas.AuthResponse)
 async def login_github(request: Request):
     redirect_uri = request.url_for('auth_github_callback')
-    return await oauth.github.authorize_redirect(request, redirect_uri, state=None)
+    return await oauth.github.authorize_redirect(request, redirect_uri)
 
 @router.get("/github/callback")
 async def auth_github_callback(request: Request, db: AsyncSession = Depends(database.get_db)):
@@ -200,7 +203,7 @@ async def auth_github_callback(request: Request, db: AsyncSession = Depends(data
 async def login_microsoft(request: Request):
     """API chuyển hướng người dùng sang Microsoft để đăng nhập."""
     redirect_uri = request.url_for('auth_microsoft_callback')
-    return await oauth.microsoft.authorize_redirect(request, redirect_uri, state=None)
+    return await oauth.microsoft.authorize_redirect(request, redirect_uri)
 
 @router.get("/microsoft/callback")
 async def auth_microsoft_callback(request: Request, db: AsyncSession = Depends(database.get_db)):
