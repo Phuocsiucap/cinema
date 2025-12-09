@@ -13,9 +13,9 @@ python-jose[cryptography]==3.3.0
 bcrypt==4.0.1
 authlib==1.2.1
 
-# Web framework
-starlette==0.35.1  # Phiên bản ổn định nhất hiện tại
+# Web framework - PHIÊN BẢN TƯƠNG THÍCH
 fastapi==0.104.1
+starlette==0.27.0  # Phiên bản tương thích với FastAPI 0.104.1
 uvicorn[standard]==0.24.0.post1
 
 # Utilities
