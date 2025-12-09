@@ -12,3 +12,5 @@ authlib
 httpx 
 itsdangerous
 pyjwt==2.8.0
+python-multipart
+starlette

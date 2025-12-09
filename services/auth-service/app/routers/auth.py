@@ -10,9 +10,10 @@ import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import update
-from app import schemas, crud, database
-from app.models import User
+import schemas, crud, database
+from models import User
 from starlette.requests import Request
+import email_utils
 
 load_dotenv()
 router = APIRouter()
@@ -26,8 +27,7 @@ oauth.register(
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
     client_kwargs={
         'scope': 'openid email profile'
-    },
-    check_state=False
+    }
 )
 
 oauth.register(
@@ -38,7 +38,6 @@ oauth.register(
     authorize_url='https://github.com/login/oauth/authorize',
     api_base_url='https://api.github.com/',
     client_kwargs={'scope': 'user:email read:user'},
-    check_state=False
 )
 
 
@@ -49,8 +48,7 @@ oauth.register(
     server_metadata_url='https://login.microsoftonline.com/consumers/v2.0/.well-known/openid-configuration',
     client_kwargs={
         'scope': 'openid email profile',
-    },
-    check_state=False
+    }
 )
    
    
@@ -274,3 +272,43 @@ async def register(auth: schemas.AuthRegister, db: AsyncSession = Depends(databa
         raise HTTPException(status_code=400, detail="Email already registered")
     await crud.create_user(db=db, user=auth)
     return {"message": "User created successfully"}
+
+@router.post("/verify-account")
+async def verify_account(request: Request, db: AsyncSession = Depends(database.get_db)):
+    """Verify user account by setting is_verified = true"""
+    # Get user_id from x-user-id header (set by API Gateway)
+    user_id = request.headers.get("x-user-id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User ID not found in headers")
+
+    try:
+        user_uuid = uuid.UUID(user_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid user ID format")
+
+    # Update user verification status
+    db_user = await crud.get_user(db, user_id)
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if db_user.is_verified:
+        return {"message": "Account already verified", "is_verified": True}
+
+    # Update is_verified to True
+    update_data = {"is_verified": True}
+    updated_user = await crud.update_user(db, user_id, schemas.UserUpdate(**update_data))
+
+    if not updated_user:
+        raise HTTPException(status_code=500, detail="Failed to update verification status")
+
+    return {
+        "message": "Account verified successfully",
+        "is_verified": True,
+        "user": {
+            "id": str(updated_user.id),
+            "email": updated_user.email,
+            "full_name": updated_user.full_name,
+            "is_verified": updated_user.is_verified
+        }
+    }
+
