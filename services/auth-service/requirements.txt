@@ -8,7 +8,7 @@ asyncpg
 passlib[bcrypt]
 python-jose
 bcrypt==4.0.1
-authlib 
+authlib>=1.0.0
 httpx 
 itsdangerous
 pyjwt==2.8.0
