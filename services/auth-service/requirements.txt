@@ -2,6 +2,7 @@
 python-dotenv==1.0.0
 pydantic==2.5.2
 pydantic-settings==2.0.3
+email-validator==2.0.0  # ✅ THÊM DÒNG NÀY ĐỂ FIX LỖI EMAIL VALIDATION
 
 # Database
 sqlalchemy==2.0.23
