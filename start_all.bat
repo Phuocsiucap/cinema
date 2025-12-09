@@ -47,16 +47,16 @@ REM ================================================================
 REM ================================================================
 REM 3. Start Cinema Service (Port 8003)
 REM ================================================================
-echo [3/6] Starting Cinema Service (Port 8003)...
-start "Cinema Service - Port 8003" cmd /k "cd /d %ROOT_DIR%services\cinema-service && uvicorn app.main:app --reload --host 0.0.0.0 --port 8003"
-timeout /t 2 /nobreak >nul
+@REM echo [3/6] Starting Cinema Service (Port 8003)...
+@REM start "Cinema Service - Port 8003" cmd /k "cd /d %ROOT_DIR%services\cinema-service && uvicorn app.main:app --reload --host 0.0.0.0 --port 8003"
+@REM timeout /t 2 /nobreak >nul
 
 REM ================================================================
 REM 4. Start Seat Booking Service (Port 8004)
 REM ================================================================
-echo [4/6] Starting Seat Booking Service (Port 8004)...
-start "Seat Booking Service - Port 8004" cmd /k "cd /d %ROOT_DIR%services\seatbooking-service && node src/app.js"
-timeout /t 2 /nobreak >nul
+@REM echo [4/6] Starting Seat Booking Service (Port 8004)...
+@REM start "Seat Booking Service - Port 8004" cmd /k "cd /d %ROOT_DIR%services\seatbooking-service && node src/app.js"
+@REM timeout /t 2 /nobreak >nul
 
 REM ================================================================
 REM 5. Start API Gateway (Port 8000)
