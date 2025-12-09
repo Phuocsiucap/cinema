@@ -1,16 +1,25 @@
-uvicorn
-python-dotenv
-pydantic
-pydantic[email]
-sqlalchemy
-asyncpg
-passlib[bcrypt]
-python-jose
+# Core dependencies
+python-dotenv==1.0.0
+pydantic==2.5.2
+pydantic-settings==2.0.3
+
+# Database
+sqlalchemy==2.0.23
+asyncpg==0.28.0
+
+# Auth
+passlib[bcrypt]==1.7.4
+python-jose[cryptography]==3.3.0
 bcrypt==4.0.1
-authlib>=1.0.0
-httpx 
-itsdangerous
+authlib==1.2.1
+
+# Web framework
+starlette==0.35.1  # Phiên bản ổn định nhất hiện tại
+fastapi==0.104.1
+uvicorn[standard]==0.24.0.post1
+
+# Utilities
+httpx==0.25.1
+itsdangerous==2.1.2
 pyjwt==2.8.0
-python-multipart
-starlette>=0.27.0
-fastapi>=0.95.0
+python-multipart==0.0.6
