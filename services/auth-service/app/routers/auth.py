@@ -117,14 +117,12 @@ async def auth_google_callback(request: Request, db: AsyncSession = Depends(data
             await db.commit()
             await db.refresh(new_user)
             user = new_user
-
+        
         token_data = await create_token(db, user, datetime.timedelta(minutes=int(os.getenv("JWT_EXPIRE_MINUTES", 30))))
         frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-        return RedirectResponse(url=f"{frontend_url}/auth/callback?token={token_data.token}")
-
-    except HTTPException:
-
-        raise
+        return RedirectResponse(url=f"{frontend_url}/#/auth/callback?token={token_data.token}")
+        
+    except HTTPException:        raise
     except Exception as e:
         print(f"Auth error: {str(e)}") 
         frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
@@ -188,7 +186,7 @@ async def auth_github_callback(request: Request, db: AsyncSession = Depends(data
             user = new_user
         token_data = await create_token(db, user, datetime.timedelta(minutes=int(os.getenv("JWT_EXPIRE_MINUTES", 30))))
         frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-        return RedirectResponse(url=f"{frontend_url}/auth/callback?token={token_data.token}")
+        return RedirectResponse(url=f"{frontend_url}/#/auth/callback?token={token_data.token}")
     except HTTPException:
         raise
     except Exception as e:
@@ -250,7 +248,7 @@ async def auth_microsoft_callback(request: Request, db: AsyncSession = Depends(d
         # 4. TẠO VÀ TRẢ VỀ JWT TOKEN CỦA HỆ THỐNG
         token_data = await create_token(db, user, datetime.timedelta(minutes=int(os.getenv("JWT_EXPIRE_MINUTES", 30))))
         frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-        return RedirectResponse(url=f"{frontend_url}/auth/callback?token={token_data.token}")
+        return RedirectResponse(url=f"{frontend_url}/#/auth/callback?token={token_data.token}")
 
     except HTTPException:
         raise
