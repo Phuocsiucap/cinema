@@ -92,9 +92,9 @@ async def auth_google_callback(request: Request, db: AsyncSession = Depends(data
             if "mismatching_state" in str(state_error):
                 # Ignore state mismatch and get token manually
                 params = dict(request.query_params)
-                token = await oauth.google.fetch_token(
+                token = await oauth.google.client.fetch_token(
                     code=params.get('code'),
-                    redirect_uri=request.url_for('auth_google_callback')
+                    redirect_uri=str(request.url_for('auth_google_callback'))
                 )
             else:
                 raise
@@ -153,9 +153,9 @@ async def auth_github_callback(request: Request, db: AsyncSession = Depends(data
             if "mismatching_state" in str(state_error):
                 # Ignore state mismatch and get token manually
                 params = dict(request.query_params)
-                token = await oauth.github.fetch_token(
+                token = await oauth.github.client.fetch_token(
                     code=params.get('code'),
-                    redirect_uri=request.url_for('auth_github_callback')
+                    redirect_uri=str(request.url_for('auth_github_callback'))
                 )
             else:
                 raise
@@ -233,9 +233,9 @@ async def auth_microsoft_callback(request: Request, db: AsyncSession = Depends(d
             if "mismatching_state" in str(state_error):
                 # Ignore state mismatch and get token manually
                 params = dict(request.query_params)
-                token = await oauth.microsoft.fetch_token(
+                token = await oauth.microsoft.client.fetch_token(
                     code=params.get('code'),
-                    redirect_uri=request.url_for('auth_microsoft_callback')
+                    redirect_uri=str(request.url_for('auth_microsoft_callback'))
                 )
             else:
                 raise
