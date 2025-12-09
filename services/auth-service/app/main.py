@@ -1,8 +1,10 @@
+# app/main.py - PHIÊN BẢN ĐÃ ĐƯỢC TỐI ƯU CHO RENDER
 import os
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware.proxy_headers import ProxyHeadersMiddleware
 from dotenv import load_dotenv
 from contextlib import asynccontextmanager
 
@@ -22,26 +24,27 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     app = FastAPI(title="Auth Service", version="1.0.0", lifespan=lifespan)
     
-    # DETECT RENDER ENVIRONMENT
-    is_render = os.environ.get("RENDER_SERVICE_ID") is not None
+    # 👇 1. PROXY HEADERS MIDDLEWARE ĐẦU TIÊN
+    app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
     
-    # SESSION MIDDLEWARE - CẤU HÌNH AN TOÀN CHO RENDER
+    # 👇 2. SESSION MIDDLEWARE VỚI CẤU HÌNH PRODUCTION
+    is_render = "RENDER_SERVICE_ID" in os.environ
     app.add_middleware(
         SessionMiddleware,
-        secret_key=os.getenv("SESSION_SECRET", "dev-secret-key-for-local-only"),
+        secret_key=os.getenv("SESSION_SECRET"),  # BẮT BUỘC CÓ TRÊN RENDER
         same_site="none" if is_render else "lax",
-        https_only=is_render,  # TỰ ĐỘNG BẬT HTTPS TRÊN RENDER
+        https_only=is_render,
         max_age=3600
     )
     
-    # CORS CONFIG - KHÔNG DÙNG WILDCARD TRÊN PRODUCTION
-    frontend_url =  "http://localhost:8000"
-    origins = ["*"] if not is_render else [frontend_url]
+    # 👇 3. CORS CHÍNH XÁC CHO OAUTH
+    frontend_url = "http://localhost:8000"
+    origins = [frontend_url] if is_render else ["*"]
     
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
-        allow_credentials=True,
+        allow_credentials=True,  # BẮT BUỘC CHO SESSION
         allow_methods=["*"],
         allow_headers=["*"],
     )
@@ -51,19 +54,25 @@ def create_app() -> FastAPI:
     
     @app.get("/health")
     async def health_check():
-        return {"status": "auth service is running", "environment": "render" if is_render else "local"}
+        return {
+            "status": "running",
+            "environment": "render" if is_render else "local",
+            "session_config": {
+                "same_site": "none" if is_render else "lax",
+                "https_only": is_render
+            }
+        }
     
     return app
 
 app = create_app()
 
 if __name__ == "__main__":
-    # Render sử dụng PORT environment variable
     port = int(os.getenv("PORT", 8000))
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",
         port=port,
-        reload=not os.getenv("RENDER_SERVICE_ID"),  # Tắt reload trên production
+        reload=not os.getenv("RENDER_SERVICE_ID"),
         workers=4 if os.getenv("RENDER_SERVICE_ID") else 1
     )
