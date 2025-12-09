@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, Request, Depends, Query
 from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
-import schemas, database, crud
-from models import MovieActor
+from app import schemas, database, crud
+from app.models import MovieActor
 
 router = APIRouter()
 

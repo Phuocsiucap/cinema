@@ -2,7 +2,7 @@ import uuid
 import enum
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean, Enum, text
-from database import Base
+from app.database import Base
 
 class UserRole(enum.Enum):
     CUSTOMER = "customer"

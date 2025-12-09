@@ -1,9 +1,9 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, or_, text
-from models import Movie, SeatBooking, Booking, Showtime, Cinema, CinemaRoom, Seat
+from app.models import Movie, SeatBooking, Booking, Showtime, Cinema, CinemaRoom, Seat
 from typing import List, Optional
 from datetime import datetime, timedelta
-from schemas import (
+from app.schemas import (
     ComparisonItem,
     RevenueComparisonResponse,
     RevenueComparisonRequest,

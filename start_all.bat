@@ -41,14 +41,14 @@ REM ================================================================
 REM 2. Start Auth Service (Port 8002)
 REM ================================================================
 echo [2/6] Starting Auth Service (Port 8002)...
-start "Auth Service - Port 8002" cmd /k "cd /d %ROOT_DIR%services\auth-service\app && python main.py"
+start "Auth Service - Port 8002" cmd /k "cd /d %ROOT_DIR%services\auth-service && uvicorn app.main:app --reload --host 0.0.0.0 --port 8002"
 timeout /t 2 /nobreak >nul
 
 REM ================================================================
 REM 3. Start Cinema Service (Port 8003)
 REM ================================================================
 echo [3/6] Starting Cinema Service (Port 8003)...
-start "Cinema Service - Port 8003" cmd /k "cd /d %ROOT_DIR%services\cinema-service\app && python main.py"
+start "Cinema Service - Port 8003" cmd /k "cd /d %ROOT_DIR%services\cinema-service && uvicorn app.main:app --reload --host 0.0.0.0 --port 8003"
 timeout /t 2 /nobreak >nul
 
 REM ================================================================
@@ -62,7 +62,7 @@ REM ================================================================
 REM 5. Start API Gateway (Port 8000)
 REM ================================================================
 echo [5/6] Starting API Gateway (Port 8000)...
-start "API Gateway - Port 8000" cmd /k "cd /d %ROOT_DIR%services\api_gateway\app && python main.py"
+start "API Gateway - Port 8000" cmd /k "cd /d %ROOT_DIR%services\api_gateway && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
 timeout /t 2 /nobreak >nul
 
 REM ================================================================

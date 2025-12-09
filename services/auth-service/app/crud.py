@@ -3,8 +3,8 @@ from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_
 from typing import Optional, List, Tuple
-from models import Token, User
-import schemas
+from app.models import Token, User
+from app import schemas
 import uuid
 
 

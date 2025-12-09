@@ -1,8 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from models import User, Movie, Cinema, SeatBooking, Showtime, Booking, Seat
+from app.models import User, Movie, Cinema, SeatBooking, Showtime, Booking, Seat
 from typing import List, Optional
-from schemas import BasicStatsResponse, RenvenueStatsResponse, TopMovieThisMonthResponse, BookingStatsResponse, DashboardResponse
+from app.schemas import BasicStatsResponse, RenvenueStatsResponse, TopMovieThisMonthResponse, BookingStatsResponse, DashboardResponse
 from fastapi import HTTPException
 
 async def get_dashboard_stats(db: AsyncSession) -> BasicStatsResponse:

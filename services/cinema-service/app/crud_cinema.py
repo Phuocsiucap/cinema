@@ -1,8 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import exc, func, select, delete
 from sqlalchemy.orm import selectinload
-from models import Movie, Actor, MovieActor, Cinema, CinemaRoom, Seat
-from schemas import MovieBase, CastMovieCreate, PaginatedMovieResponse, MovieBasicResponse, MovieResponse, CinemaCreate, AddRoomToCenema, CinemaUpdate, CinemaRoomUpdate, SeatUpdate
+from app.models import Movie, Actor, MovieActor, Cinema, CinemaRoom, Seat
+from app.schemas import MovieBase, CastMovieCreate, PaginatedMovieResponse, MovieBasicResponse, MovieResponse, CinemaCreate, AddRoomToCenema, CinemaUpdate, CinemaRoomUpdate, SeatUpdate
 from typing import List, Optional
 from fastapi import HTTPException
 

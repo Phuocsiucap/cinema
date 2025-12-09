@@ -6,9 +6,9 @@ from starlette.middleware.sessions import SessionMiddleware
 from dotenv import load_dotenv
 from contextlib import asynccontextmanager
 
-from routers.auth import router as auth_router
-from routers.users import router as users_router
-from database import Base, engine
+from app.routers.auth import router as auth_router
+from app.routers.users import router as users_router
+from app.database import Base, engine
 
 load_dotenv()
 
@@ -52,4 +52,4 @@ app = create_app()
 
 if __name__ == "__main__":
     port = int(os.getenv("SERVICE_PORT", 8002))
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=port, reload=True)

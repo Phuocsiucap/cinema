@@ -1,8 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import exc, func, select, delete
 from sqlalchemy.orm import selectinload
-from models import Movie, Cinema, CinemaRoom, Showtime, Seat, SeatBooking, Booking, BookingStatus
-from schemas import ShowtimeBase, ShowtimeCreate, ShowtimeUpdate, ShowtimeResponse, SeatWithStatusResponse, SeatStatus
+from app.models import Movie, Cinema, CinemaRoom, Showtime, Seat, SeatBooking, Booking, BookingStatus
+from app.schemas import ShowtimeBase, ShowtimeCreate, ShowtimeUpdate, ShowtimeResponse, SeatWithStatusResponse, SeatStatus
 from typing import List, Optional
 from fastapi import HTTPException
 from datetime import timedelta, datetime, timezone

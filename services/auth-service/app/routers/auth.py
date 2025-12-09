@@ -10,8 +10,8 @@ import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import update
-import schemas, crud, database
-from models import User
+from app import schemas, crud, database
+from app.models import User
 from starlette.requests import Request
 
 load_dotenv()

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request
 import os
-from routes.baseRequest import proxy
+from app.routes.baseRequest import proxy
 
 router = APIRouter()
 AUTH_SERVICE = os.getenv("AUTH_SERVICE_URL", "http://localhost:8002")

@@ -5,14 +5,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from contextlib import asynccontextmanager
 
-from routers.movies import router as movies_router
-from routers.cinemas import router as cinemas_router
-from routers.actors import router as actors_router
-from routers.show_times import router as showtimes_router
-from routers.dashboard import router as dashboard_router
-from routers.revenue import router as revenue_router
+from app.routers.movies import router as movies_router
+from app.routers.cinemas import router as cinemas_router
+from app.routers.actors import router as actors_router
+from app.routers.show_times import router as showtimes_router
+from app.routers.dashboard import router as dashboard_router
+from app.routers.revenue import router as revenue_router
 
-from database import Base, engine
+from app.database import Base, engine
 
 load_dotenv()
 
@@ -52,4 +52,4 @@ app = create_app()
 
 if __name__ == "__main__":
     port = int(os.getenv("SERVICE_PORT", 8003))
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=port, reload=True)

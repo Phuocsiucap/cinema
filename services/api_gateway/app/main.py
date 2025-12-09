@@ -5,17 +5,17 @@ from dotenv import load_dotenv
 import uvicorn
 
 # Import routes
-from routes.auth_routes import router as auth_router
-from routes.user_routes import router as user_router
-from routes.cinema_routes import router as cinema_router
-from routes.movie_routes import router as movie_router
-from routes.actor_routes import router as actor_router
-from routes.showtime_routes import router as showtime_router
-from routes.booking_routes import router as booking_router
-from routes.dashboard_routes import router as dashboard_router
-from routes.promotion_routes import router as promotion_router
-from routes.revenue_routes import router as revenue_router
-from routes.upload_routes import router as upload_router
+from app.routes.auth_routes import router as auth_router
+from app.routes.user_routes import router as user_router
+from app.routes.cinema_routes import router as cinema_router
+from app.routes.movie_routes import router as movie_router
+from app.routes.actor_routes import router as actor_router
+from app.routes.showtime_routes import router as showtime_router
+from app.routes.booking_routes import router as booking_router
+from app.routes.dashboard_routes import router as dashboard_router
+from app.routes.promotion_routes import router as promotion_router
+from app.routes.revenue_routes import router as revenue_router
+from app.routes.upload_routes import router as upload_router
 # from aroutes.order_routes import router as order_router
 load_dotenv()
 app = FastAPI(title="API Gateway")
@@ -49,4 +49,4 @@ def health():
 
 if __name__ == "__main__":
     port = int(os.getenv("GATEWAY_PORT", 8000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=port, reload=True)

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-import schemas, database, crud_revenue
+from app import schemas, database, crud_revenue
 from typing import Optional
 from datetime import date
 

@@ -16,8 +16,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY app/ ./app/
 
-# Copy additional scripts if any
-COPY add_background_url.py ./
 
 # Expose port
 EXPOSE 8003

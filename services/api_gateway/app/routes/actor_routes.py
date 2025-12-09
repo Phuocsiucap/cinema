@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, Depends
 import os
-from routes.baseRequest import verify_jwt, verify_admin, proxy
+from app.routes.baseRequest import verify_jwt, verify_admin, proxy
 
 router = APIRouter()
 CINEMA_SERVICE = os.getenv("CINEMA_SERVICE_URL", "http://localhost:8003")
