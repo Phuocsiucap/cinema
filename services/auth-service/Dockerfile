@@ -4,7 +4,7 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies (if needed for compilation)
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     libpq-dev \
@@ -17,11 +17,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY app/ ./app/
 
-# Use PORT environment variable (Render sets this automatically)
+# Set default port (Render sẽ override bằng environment variable)
 ENV PORT=10000
 
 # Expose the port
 EXPOSE $PORT
 
-# Run the application - use environment variable for port
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "$PORT"]
+# Run the application - USE SHELL FORM TO ENABLE ENV VARIABLE SUBSTITUTION
+CMD uvicorn app.main:app --host 0.0.0.0 --port $PORT
