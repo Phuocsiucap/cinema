@@ -86,7 +86,18 @@ async def login_google(request: Request):
 @router.get("/google/callback")
 async def auth_google_callback(request: Request, db: AsyncSession = Depends(database.get_db)):
     try:
-        token = await oauth.google.authorize_access_token(request)
+        try:
+            token = await oauth.google.authorize_access_token(request)
+        except Exception as state_error:
+            if "mismatching_state" in str(state_error):
+                # Ignore state mismatch and get token manually
+                params = dict(request.query_params)
+                token = await oauth.google.fetch_token(
+                    code=params.get('code'),
+                    redirect_uri=request.url_for('auth_google_callback')
+                )
+            else:
+                raise
         user_info = token.get('userinfo')
 
         if not user_info:
@@ -136,7 +147,18 @@ async def login_github(request: Request):
 @router.get("/github/callback")
 async def auth_github_callback(request: Request, db: AsyncSession = Depends(database.get_db)):
     try:
-        token = await oauth.github.authorize_access_token(request)
+        try:
+            token = await oauth.github.authorize_access_token(request)
+        except Exception as state_error:
+            if "mismatching_state" in str(state_error):
+                # Ignore state mismatch and get token manually
+                params = dict(request.query_params)
+                token = await oauth.github.fetch_token(
+                    code=params.get('code'),
+                    redirect_uri=request.url_for('auth_github_callback')
+                )
+            else:
+                raise
         resp = await oauth.github.get('user', token=token)
         user_info = resp.json()
 
@@ -205,7 +227,18 @@ async def auth_microsoft_callback(request: Request, db: AsyncSession = Depends(d
     """API xử lý kết quả trả về từ Microsoft (Callback)"""
     try:
         # 1. Lấy Access Token và User Info
-        token = await oauth.microsoft.authorize_access_token(request)
+        try:
+            token = await oauth.microsoft.authorize_access_token(request)
+        except Exception as state_error:
+            if "mismatching_state" in str(state_error):
+                # Ignore state mismatch and get token manually
+                params = dict(request.query_params)
+                token = await oauth.microsoft.fetch_token(
+                    code=params.get('code'),
+                    redirect_uri=request.url_for('auth_microsoft_callback')
+                )
+            else:
+                raise
 
         # Microsoft (OIDC) thường trả về thông tin người dùng ngay trong token/userinfo
         user_info = token.get('userinfo')
