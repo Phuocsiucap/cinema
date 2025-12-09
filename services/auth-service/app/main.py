@@ -28,13 +28,15 @@ def create_app() -> FastAPI:
     app.add_middleware(
         SessionMiddleware,
         secret_key=os.getenv("SECRET_KEY", "your-secret-key-here"),
+        same_site="lax",
+        https_only=False,
         max_age=3600  # 1 hour
     )
     
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
-        #allow_credentials=True,
+        allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
