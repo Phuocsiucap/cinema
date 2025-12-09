@@ -60,7 +60,7 @@ export function AddMoviePage() {
   // Poster preview (for uploaded file)
   const [posterPreview, setPosterPreview] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  // const [posterFile, setPosterFile] = useState<File | null>(null); // For future upload to server
+  const [posterFile, setPosterFile] = useState<File | null>(null); // For future upload to server
 
   // Click outside to close suggestions
   useEffect(() => {

@@ -13,7 +13,6 @@ from sqlalchemy import update
 from app import schemas, crud, database
 from app.models import User
 from starlette.requests import Request
-import email_utils
 
 load_dotenv()
 router = APIRouter()

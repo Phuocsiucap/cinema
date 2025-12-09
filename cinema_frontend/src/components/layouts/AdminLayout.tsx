@@ -3,14 +3,14 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Film, 
-  // CalendarDays, 
+  CalendarDays, 
   Users, 
-  // Settings, 
+  Settings, 
   LogOut,
   ChevronLeft,
   Menu,
   Building2,
-  // Clock,
+  Clock,
   Ticket,
   Tag,
   DollarSign
