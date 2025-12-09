@@ -1,0 +1,17 @@
+export { AdminDashboardPage } from './AdminDashboardPage';
+export { AddMoviePage } from './AddMoviePage';
+export { MoviesPage } from './MoviesPage';
+export { EditMoviePage } from './EditMoviePage';
+export { AddCinemaPage } from './AddCinemaPage';
+export { AddRoomsPage } from './AddRoomsPage';
+export { CinemasPage } from './CinemasPage';
+export { EditCinemaPage } from './EditCinemaPage';
+export { EditRoomPage } from './EditRoomPage';
+export { UsersPage } from './UsersPage';
+export { EditUserPage } from './EditUserPage';
+export { ShowtimesPage } from './ShowtimesPage';
+export { ManageTicketsPage } from './ManageTicketsPage';
+export { PromotionsPage } from './PromotionsPage';
+export { AddPromotionPage } from './AddPromotionPage';
+export { EditPromotionPage } from './EditPromotionPage';
+export { RevenuePage } from './RevenuePage';

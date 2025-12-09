@@ -1,0 +1,15 @@
+export { HomePage } from './HomePage';
+export { default as MovieDetailPage } from './MovieDetailPage';
+export { default as MovieBookingPage } from './MovieBookingPage';
+export { default as SeatSelectionPage } from './SeatSelectionPage';
+export { default as PaymentPage } from './PaymentPage';
+export { default as MyTicketsPage } from './MyTicketsPage';
+export { default as AboutPage } from './AboutPage';
+export { default as PoliciesPage } from './PoliciesPage';
+export { default as ContactPage } from './ContactPage';
+export { MoviesPage } from './MoviesPage';
+export { CinemasPage } from './CinemasPage';
+export { PromotionsPage } from './PromotionsPage';
+export { UploadTestPage } from './UploadTestPage';
+export { LoginPage, RegisterPage, AuthCallbackPage, ForgotPasswordPage, ResetPasswordPage } from './auth';
+export { AdminDashboardPage, AddMoviePage, EditMoviePage, AddCinemaPage, AddRoomsPage, EditCinemaPage, EditRoomPage, UsersPage, EditUserPage, ShowtimesPage, ManageTicketsPage } from './admin';

@@ -1,0 +1,102 @@
+version: '3.8'
+
+services:
+  # API Gateway
+  api-gateway:
+    build: ./api_gateway
+    ports:
+      - "${GATEWAY_PORT:-8000}:8000"
+    environment:
+      - AUTH_SERVICE_URL=http://auth-service:${AUTH_SERVICE_PORT:-8002}
+      - CINEMA_SERVICE_URL=http://cinema-service:${CINEMA_SERVICE_PORT:-8003}
+      - SEATBOOKING_SERVICE_URL=http://seatbooking-service:${SEATBOOKING_SERVICE_PORT:-8004}
+      - SECRET_KEY=${SECRET_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - ALGORITHM=${ALGORITHM:-HS256}
+      - GATEWAY_PORT=${GATEWAY_PORT:-8000}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+    depends_on:
+      - auth-service
+      - cinema-service
+      - seatbooking-service
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${GATEWAY_PORT:-8000}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Auth Service
+  auth-service:
+    build: ./services/auth-service
+    ports:
+      - "${AUTH_SERVICE_PORT:-8002}:8002"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - SECRET_KEY=${SECRET_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - ALGORITHM=${ALGORITHM:-HS256}
+      - JWT_EXPIRE_MINUTES=${JWT_EXPIRE_MINUTES:-30}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      - MICROSOFT_CLIENT_ID=${MICROSOFT_CLIENT_ID}
+      - MICROSOFT_CLIENT_SECRET=${MICROSOFT_CLIENT_SECRET}
+      - SMTP_SERVER=${SMTP_SERVER}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:${AUTH_SERVICE_PORT:-8002}/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Cinema Service
+  cinema-service:
+    build: ./services/cinema-service
+    ports:
+      - "${CINEMA_SERVICE_PORT:-8003}:8003"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - SECRET_KEY=${SECRET_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - ALGORITHM=${ALGORITHM:-HS256}
+      - SERVICE_PORT=${CINEMA_SERVICE_PORT:-8003}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:${CINEMA_SERVICE_PORT:-8003}/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Seat Booking Service
+  seatbooking-service:
+    build: ./seatbooking-service
+    ports:
+      - "${SEATBOOKING_SERVICE_PORT:-8004}:8004"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - PORT=${SEATBOOKING_SERVICE_PORT:-8004}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${SEATBOOKING_SERVICE_PORT:-8004}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend
+  cinema-frontend:
+    build: ./cinema_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - api-gateway
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+

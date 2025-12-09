@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test QR Scanner</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <h1>Quét Mã QR (TEST)</h1>
+
+    <div id="reader" style="width: 400px; border: 1px solid black; margin: 20px auto;"></div> 
+    
+    <div id="result" style="text-align: center; margin-top: 15px; font-weight: bold;">
+        Kết quả: Đang chờ quét...
+    </div>
+
+    <script src="https://unpkg.com/html5-qrcode"></script>
+
+    <script>
+        function onScanSuccess(decodedText) {
+            const resultDiv = document.getElementById("result");
+            resultDiv.style.background = "#107c10";
+            resultDiv.style.color = "white";
+            resultDiv.innerHTML = `QR SCANNED: ${decodedText}`;
+
+            // Dừng scanner trong 2 giây để tránh quét liên tiếp
+            html5QrcodeScanner.clear();
+            setTimeout(() => {
+                html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+            }, 2000);
+        }
+
+        function onScanFailure(error) {
+            // Không làm gì khi lỗi nhỏ
+        }
+
+        var html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader",
+            { fps: 10, qrbox: { width: 250, height: 250 }},
+            false
+        );
+
+        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    </script>
+</body>
+</html>
