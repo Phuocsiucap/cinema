@@ -40,9 +40,9 @@ REM timeout /t 2 /nobreak >nul
 REM ================================================================
 REM 2. Start Auth Service (Port 8002)
 REM ================================================================
-echo [2/6] Starting Auth Service (Port 8002)...
-start "Auth Service - Port 8002" cmd /k "cd /d %ROOT_DIR%services\auth-service && uvicorn app.main:app --reload --host 0.0.0.0 --port 8002"
-timeout /t 2 /nobreak >nul
+@REM echo [2/6] Starting Auth Service (Port 8002)...
+@REM start "Auth Service - Port 8002" cmd /k "cd /d %ROOT_DIR%services\auth-service && uvicorn app.main:app --reload --host 0.0.0.0 --port 8002"
+@REM timeout /t 2 /nobreak >nul
 
 REM ================================================================
 REM 3. Start Cinema Service (Port 8003)

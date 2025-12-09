@@ -86,49 +86,46 @@ async def login_google(request: Request):
 @router.get("/google/callback")
 async def auth_google_callback(request: Request, db: AsyncSession = Depends(database.get_db)):
     try:
-        
+        # ✅ CÁCH CHUẨN - KHÔNG CAN THIỆP VÀO STATE VALIDATION
         token = await oauth.google.authorize_access_token(request)
-        
         user_info = token.get('userinfo')
-
+        
         if not user_info:
             raise HTTPException(status_code=400, detail="Failed to get user info from Google")
-        print("UerInfo: ", user_info)
+        
         email = user_info.get('email')
-
         user = await crud.get_user_by_email(db, email)
+        
         if user:
-            if user.google_id is None:
+            if not user.google_id:
                 user.google_id = str(user_info.get('sub'))
                 await db.commit()
                 await db.refresh(user)
-
-        if not user:
+        else:
             new_user = User(
-                id=uuid.uuid4(),  
+                id=uuid.uuid4(),
                 full_name=user_info.get('name'),
                 email=email,
-                phone_number=None,
-                hashed_password="", 
-                google_id=user_info.get('sub'), 
+                google_id=str(user_info.get('sub')),
                 avatar_url=user_info.get('picture'),
                 is_active=True,
                 is_verified=True,
+                hashed_password=""  # OAuth không cần mật khẩu
             )
             db.add(new_user)
             await db.commit()
             await db.refresh(new_user)
             user = new_user
         
-        token_data = await create_token(db, user, datetime.timedelta(minutes=int(os.getenv("JWT_EXPIRE_MINUTES", 30))))
+        token_data = await create_token(db, user, datetime.timedelta(minutes=30))
         frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
         return RedirectResponse(url=f"{frontend_url}/#/auth/callback?token={token_data.token}")
         
-    except HTTPException:        raise
     except Exception as e:
-        print(f"Auth error: {str(e)}") 
+        print(f"🔥 Google OAuth failed: {str(e)}")
         frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-        return RedirectResponse(url=f"{frontend_url}/login?error=auth_failed")
+        # Thêm detail cho debug
+        return RedirectResponse(url=f"{frontend_url}/login?error=google_auth_failed&detail={str(e)}")
 
 @router.get("/github", response_model=schemas.AuthResponse)
 async def login_github(request: Request):
