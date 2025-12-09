@@ -263,7 +263,7 @@ export async function getSeatStatus(showtimeId: string): Promise<{ locked_seats:
 export async function createBooking(
   showtimeId: string,
   seatIds: string[],
-  userId?: string,
+  // userId?: string,
   promotionCode?: string
 ): Promise<CreateBookingResponse> {
   return api.post<CreateBookingResponse>(`${BOOKING_API}/`, {

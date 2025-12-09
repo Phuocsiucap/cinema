@@ -3,14 +3,14 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Film, 
-  CalendarDays, 
+  // CalendarDays, 
   Users, 
-  Settings, 
+  // Settings, 
   LogOut,
   ChevronLeft,
   Menu,
   Building2,
-  Clock,
+  // Clock,
   Ticket,
   Tag,
   DollarSign
@@ -30,7 +30,7 @@ const menuItems = [
   { icon: Tag, label: 'Promotions', path: '/admin/promotions' },
   { icon: DollarSign, label: 'Revenue', path: '/admin/revenue' },
   { icon: Users, label: 'Users', path: '/admin/users' },
-  // { icon: Settings, label: 'Settings', path: '/admin/settings' }, // Temporarily hidden
+  { icon: Settings, label: 'Settings', path: '/admin/settings' },
 ];
 
 export function AdminLayout({ children }: AdminLayoutProps) {
