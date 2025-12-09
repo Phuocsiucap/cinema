@@ -7,7 +7,7 @@ sqlalchemy
 asyncpg
 passlib[bcrypt]
 python-jose
-bcryp4.0.1
+bcrypt==4.0.1
 authlib 
 httpx 
 itsdangerous
