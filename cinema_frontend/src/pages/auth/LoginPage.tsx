@@ -139,7 +139,7 @@ export function LoginPage() {
             size="large"
             text="signin_with"
             shape="rectangular"
-            width="100%"
+            width="400"
           />
           
           {/* --- CẬP NHẬT: Nút GitHub cho BrowserRouter --- */}
@@ -171,6 +171,7 @@ export function LoginPage() {
             value={formData.email}
             onChange={(e) => handleInputChange('email', e.target.value)}
             error={formErrors.email}
+            autoComplete="email"
           />
 
           <Input
@@ -180,6 +181,7 @@ export function LoginPage() {
             value={formData.password}
             onChange={(e) => handleInputChange('password', e.target.value)}
             error={formErrors.password}
+            autoComplete="current-password"
           />
 
           <div className="flex justify-end">

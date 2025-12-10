@@ -17,11 +17,7 @@ async def checkin_booking(request: Request, booking_id: str, payload=Depends(ver
     user_id = payload.get("sub") 
     return await proxy(request, f"/{booking_id}/checkin", BOOKING_SERVICE, str(user_id))
 
-@router.api_route("/{path:path}", methods=["POST", "GET"])
-async def booking_proxy(request: Request, path: str, payload=Depends(verify_jwt)):
+@router.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+async def booking_proxy(request: Request, path: str = "", payload=Depends(verify_jwt)):
     user_id = payload.get("sub") 
     return await proxy(request, f"/{path}", BOOKING_SERVICE, str(user_id))
-
-@router.api_route("/", methods=["GET"])
-def get_ulr_ws(request: Request):
-    return BOOKING_SERVICE

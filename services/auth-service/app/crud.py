@@ -42,10 +42,14 @@ async def get_user_by_email(db: AsyncSession, email: str):
     return result.scalar_one_or_none()
 
 def verify_password(plain_password: str, hashed_password: str):
-    return pwd_context.verify(plain_password[:72], hashed_password)
+    # Truncate password to ensure it's within bcrypt limits
+    truncated_password = plain_password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
+    return pwd_context.verify(truncated_password, hashed_password)
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password[:72])
+    # Truncate password to ensure it's within bcrypt limits
+    truncated_password = password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
+    return pwd_context.hash(truncated_password)
 
 async def create_user(db: AsyncSession, user: schemas.AuthRegister):
     hashed_password = pwd_context.hash(user.password[:72])

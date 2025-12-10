@@ -140,6 +140,7 @@ export function RegisterPage() {
           value={formData.full_name}
           onChange={(e) => handleInputChange('full_name', e.target.value)}
           error={formErrors.full_name}
+          autoComplete="name"
         />
 
         <Input
@@ -149,6 +150,7 @@ export function RegisterPage() {
           value={formData.email}
           onChange={(e) => handleInputChange('email', e.target.value)}
           error={formErrors.email}
+          autoComplete="email"
         />
 
         <Input
@@ -158,6 +160,7 @@ export function RegisterPage() {
           value={formData.phone_number}
           onChange={(e) => handleInputChange('phone_number', e.target.value)}
           error={formErrors.phone_number}
+          autoComplete="tel"
         />
 
         <Input
@@ -167,6 +170,7 @@ export function RegisterPage() {
           value={formData.password}
           onChange={(e) => handleInputChange('password', e.target.value)}
           error={formErrors.password}
+          autoComplete="new-password"
         />
 
         <Input
@@ -176,6 +180,7 @@ export function RegisterPage() {
           value={formData.confirmPassword}
           onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
           error={formErrors.confirmPassword}
+          autoComplete="new-password"
         />
 
         <Button 

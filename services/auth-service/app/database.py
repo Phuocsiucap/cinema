@@ -9,6 +9,10 @@ load_dotenv()
 
 # Đổi từ postgresql:// sang postgresql+asyncpg://
 DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    DATABASE_URL = "postgresql+asyncpg://neondb_owner:npg_D0UhsYXfC5qz@ep-frosty-brook-a1pvww8v4mjekqtvh@ep-frosty-brook-a1pvww8v-pooler.ap-southeast-1.aws.neon.tech/neondb"
+
 if DATABASE_URL:
     # Chuyển sang asyncpg driver
     if DATABASE_URL.startswith("postgresql://"):

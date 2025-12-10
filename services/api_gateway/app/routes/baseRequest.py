@@ -89,8 +89,17 @@ async def proxy(request: Request, path: str, url_service: str, user_id: Optional
             content=body
         )
         print(resp)
-        return Response(
+        # Create response with CORS headers
+        response = Response(
             content=resp.content,
             status_code=resp.status_code,
             headers=resp.headers
         )
+        
+        # Add CORS headers manually for proxied responses
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, x-user-id"
+        
+        return response
