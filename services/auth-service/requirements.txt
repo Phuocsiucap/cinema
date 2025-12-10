@@ -1,27 +1,13 @@
 # Core dependencies
 python-dotenv==1.0.0
 pydantic==2.5.2
-pydantic-settings==2.0.3
-email-validator==2.0.0  # ✅ THÊM DÒNG NÀY ĐỂ FIX LỖI EMAIL VALIDATION
-
-# Database
+requests
 sqlalchemy==2.0.23
 asyncpg==0.28.0
-
-# Auth
 passlib[bcrypt]==1.7.4
-python-jose[cryptography]==3.3.0
-bcrypt==4.0.1
-authlib==1.2.1
 google-auth==2.23.4
-
-# Web framework - PHIÊN BẢN TƯƠNG THÍCH
 fastapi==0.104.1
-starlette==0.27.0  # Phiên bản tương thích với FastAPI 0.104.1
+starlette==0.27.0
 uvicorn[standard]==0.24.0.post1
-
-# Utilities
 httpx==0.25.1
-itsdangerous==2.1.2
 pyjwt==2.8.0
-python-multipart==0.0.6
