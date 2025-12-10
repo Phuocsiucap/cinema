@@ -3,7 +3,7 @@ import os
 from app.routes.baseRequest import verify_jwt, verify_admin, proxy
 
 router = APIRouter()
-BOOKING_SERVICE = os.getenv("BOOKING_SERVICE_URL", "http://localhost:8004")
+BOOKING_SERVICE = os.getenv("SEATBOOKING_SERVICE_URL", "http://localhost:8004")
 
 # Public routes
 @router.api_route("/active", methods=["GET"])
