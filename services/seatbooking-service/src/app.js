@@ -29,7 +29,12 @@ import {
 
 dotenv.config();
 const app = express();
-app.use(cors());
+app.use(cors({
+    origin: true, // Allow all origins
+    credentials: true, // Allow credentials
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-user-id"]
+}));
 app.use(express.json());
 
 const server = http.createServer(app);
@@ -40,19 +45,14 @@ const io = new Server(server, {
     }
 });
 
-// Setup Socket.IO
-setupSocketIO(io);
 
-// Pass io to controllers
+setupSocketIO(io);
 setIO(io);
 setBookingIO(io);
 
 // ==================== SEAT ROUTES ====================
 app.post("/lock-seat", lockSeat);
 app.post("/unlock-seat", unlockSeat);
-
-// ==================== PROMOTION ROUTES ====================
-// Admin routes - ĐẶT TRƯỚC ĐỂ TRÁNH CONFLICT VỚI /:bookingId
 app.get("/promotions/active", getActivePromotions);
 app.post("/promotions/validate", validatePromotionCode);
 app.get("/promotions", getPromotions);
@@ -61,7 +61,7 @@ app.get("/promotions/:id", getPromotion);
 app.put("/promotions/:id", updatePromotion);
 app.delete("/promotions/:id", deletePromotion);
 
-// ==================== BOOKING ROUTES ====================
+
 // Tạo booking mới (sau khi đã lock ghế)
 app.post("/", createBooking);
 
