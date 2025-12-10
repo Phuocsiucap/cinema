@@ -31,7 +31,8 @@ export interface RegisterCredentials {
 }
 
 export interface AuthResponse {
-  token: string;
+  user: User;
+  access_token: string;
 }
 
 // Auth Actions

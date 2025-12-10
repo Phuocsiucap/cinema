@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>CineStar Vivu - Đặt vé xem phim</title>
+    <style>
+        :root {
+            --primary-color: #e50914; /* Màu đỏ Netflix làm màu nhấn */
+            --bg-dark: #141414;
+            --bg-light: #1f1f1f;
+            --text-white: #ffffff;
+        }
+        body {
+            margin: 0;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-white);
+        }
+        /* HEADER */
+        header {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 30px;
+            background-color: rgba(0,0,0,0.8);
+            position: fixed;
+            width: 100%;
+            z-index: 100;
+        }
+        .nav-links a { color: white; text-decoration: none; margin: 0 15px; font-weight: bold;}
+        .user-actions button { background: var(--primary-color); border: none; color: white; padding: 8px 15px; border-radius: 4px; cursor: pointer;}
+
+        /* HERO SECTION */
+        .hero-section {
+            height: 80vh;
+            background-image: url('https://dummyimage.com/1920x1080/333/fff&text=Movie+Banner+Image'); /* Ảnh giả lập */
+            background-size: cover;
+            display: flex;
+            align-items: flex-end;
+            padding: 50px;
+        }
+        .hero-content h1 { font-size: 4em; margin-bottom: 10px; }
+        .btn-primary { background: var(--primary-color); border: none; color: white; padding: 12px 30px; font-size: 1.1em; border-radius: 5px; cursor: pointer; font-weight: bold;}
+
+        /* QUICK BOOKING BAR */
+        .quick-booking {
+            background: var(--bg-light);
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: -40px; /* Đè lên hero banner */
+            position: relative;
+            z-index: 10;
+            border-radius: 8px;
+            max-width: 900px;
+            margin-left: auto; margin-right: auto;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+        }
+        .quick-booking select { padding: 10px; background: #333; color: white; border: 1px solid #444; border-radius: 4px; flex-grow: 1;}
+
+        /* MOVIE GRID SECTIONS */
+        .section-container { padding: 40px 50px; }
+        .section-title { font-size: 2em; border-left: 5px solid var(--primary-color); padding-left: 15px; margin-bottom: 30px;}
+        .movie-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); /* Tự động chia cột */
+            gap: 25px;
+        }
+        .movie-card { background: var(--bg-light); border-radius: 8px; overflow: hidden; transition: transform 0.3s;}
+        .movie-card:hover { transform: scale(1.03); }
+        .movie-poster { height: 300px; background: #555; } /* Placeholder cho poster */
+        .movie-info { padding: 15px; }
+        .movie-title { font-weight: bold; margin-bottom: 10px; display: block;}
+        .btn-book { width: 100%; padding: 10px; background: transparent; border: 2px solid var(--primary-color); color: var(--primary-color); font-weight: bold; cursor: pointer;}
+        .btn-book:hover { background: var(--primary-color); color: white; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo"><h2>CINESTAR VIVU</h2></div>
+        <nav class="nav-links">
+            <a href="#">Phim</a>
+            <a href="#">Rạp</a>
+            <a href="#">Ưu đãi</a>
+        </nav>
+        <div class="user-actions">
+            <span>TP.HCM ▾ </span>
+            <button>Đăng nhập</button>
+        </div>
+    </header>
+
+    <section class="hero-section">
+        <div class="hero-content">
+            <h1>KONG x GODZILLA: ĐẾ CHẾ MỚI</h1>
+            <p>Hành động / Quái vật | Khởi chiếu 15.04.2024</p>
+            <button class="btn-primary">ĐẶT VÉ NGAY</button>
+        </div>
+    </section>
+
+    <section class="quick-booking">
+        <select><option>Chọn Phim</option></select>
+        <select><option>Chọn Rạp</option></select>
+        <select><option>Hôm nay, 15/04</option></select>
+        <button class="btn-primary">TÌM SUẤT CHIẾU</button>
+    </section>
+
+    <section class="section-container">
+        <h2 class="section-title">Đang Chiếu Tại Rạp</h2>
+        <div class="movie-grid">
+            <div class="movie-card">
+                <div class="movie-poster" style="background-image: url('https://dummyimage.com/200x300/555/fff&text=Poster+1'); background-size:cover;"></div>
+                <div class="movie-info">
+                    <span class="movie-title">Dune: Hành Tinh Cát 2</span>
+                    <span>IMAX 2D</span>
+                    <button class="btn-book">MUA VÉ</button>
+                </div>
+            </div>
+            <div class="movie-card">
+                <div class="movie-poster" style="background-image: url('https://dummyimage.com/200x300/666/fff&text=Poster+2'); background-size:cover;"></div>
+                <div class="movie-info">
+                    <span class="movie-title">Kung Fu Panda 4</span>
+                    <span>Lồng tiếng Việt</span>
+                    <button class="btn-book">MUA VÉ</button>
+                </div>
+            </div>
+             <div class="movie-card">
+                <div class="movie-poster" style="background-image: url('https://dummyimage.com/200x300/777/fff&text=Poster+3'); background-size:cover;"></div>
+                <div class="movie-info">
+                    <span class="movie-title">Mai</span>
+                    <span>Tâm lý / Tình cảm</span>
+                    <button class="btn-book">MUA VÉ</button>
+                </div>
+            </div>
+            <div class="movie-card">
+                <div class="movie-poster" style="background-image: url('https://dummyimage.com/200x300/888/fff&text=Poster+4'); background-size:cover;"></div>
+                <div class="movie-info">
+                    <span class="movie-title">Exhuma: Quật Mộ</span>
+                    <span>Kinh dị</span>
+                    <button class="btn-book">MUA VÉ</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section-container">
+        <div style="width: 100%; height: 200px; background: #333; display: flex; align-items: center; justify-content: center;">
+            <h2>BANNER QUẢNG CÁO KHUYẾN MÃI (VD: COMBO BẮP NƯỚC)</h2>
+        </div>
+    </section>
+
+    <section class="section-container">
+        <h2 class="section-title">Sắp Ra Mắt</h2>
+        <div class="movie-grid">
+            <div class="movie-card">
+                <div class="movie-poster" style="background-image: url('https://dummyimage.com/200x300/444/fff&text=Coming+Soon'); background-size:cover;"></div>
+                <div class="movie-info">
+                    <span class="movie-title">Deadpool & Wolverine</span>
+                    <span>Tháng 7.2024</span>
+                    <button class="btn-book" style="border-color: #fff; color: #fff;">ĐẶT TRƯỚC</button>
+                </div>
+            </div>
+            </div>
+    </section>
+
+    <footer style="background: #111; padding: 50px; text-align: center; margin-top: 50px;">
+        <p>© 2024 CINESTAR VIVU. All rights reserved.</p>
+    </footer>
+
+</body>
+</html>

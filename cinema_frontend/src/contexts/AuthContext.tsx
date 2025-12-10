@@ -57,7 +57,9 @@ interface AuthContextType extends AuthState {
   register: (credentials: RegisterCredentials) => Promise<void>;
   logout: () => Promise<void>;
   loginWithGoogle: () => Promise<void>;
+  loginWithGoogleToken: (token: string) => Promise<void>;
   loginWithGithub: () => Promise<void>;
+  loginWithGithubCode: (code: string) => Promise<void>;
   loginWithMicrosoft: () => Promise<void>;
   loginWithToken: (token: string) => void;
   refreshUser: () => Promise<void>;
@@ -104,10 +106,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'AUTH_START' });
     try {
       const response = await authService.login(credentials);
-      const token = response.token;
+      const token = response.access_token;
       authService.setToken(token);
-      
-      const user = await authService.getInfoUserByToken();
+      const user = response.user;
+      // const user = await authService.getInfoUserByToken();
       if (user){
         dispatch({ type: 'AUTH_SUCCESS', payload: { user, token } });
       } 
@@ -147,8 +149,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await authService.loginWithGoogle();
   };
 
+  const loginWithGoogleToken = async (token: string) => {
+    dispatch({ type: 'AUTH_START' });
+    try {
+      const response = await authService.loginWithGoogleToken(token);
+      const jwtToken = response.access_token;
+      const user = response.user;
+      authService.setToken(jwtToken);
+      
+      if (user){
+        dispatch({ type: 'AUTH_SUCCESS', payload: { user, token: jwtToken } });
+      } 
+      
+    } catch (error) {
+      dispatch({ type: 'AUTH_FAILURE', payload: (error as Error).message });
+      throw error;
+    }
+  };
+
+  const loginWithGithubCode = async (code: string) => {
+    dispatch({ type: 'AUTH_START' });
+    try {
+      console.log('Calling loginWithGithubCode with code:', code);
+      const response = await authService.loginWithGithubCode(code);
+      console.log('GitHub login response:', response);
+      const jwtToken = response.access_token;
+      const user = response.user;
+      authService.setToken(jwtToken);
+      console.log('Token set, user info:', user);
+      
+      if (user){
+        dispatch({ type: 'AUTH_SUCCESS', payload: { user, token: jwtToken } });
+        console.log('AUTH_SUCCESS dispatched');
+      } else {
+        console.log('No user returned');
+      }
+      
+    } catch (error) {
+      console.error('GitHub login failed:', error);
+      dispatch({ type: 'AUTH_FAILURE', payload: (error as Error).message });
+      throw error;
+    }
+  };
+
   const loginWithGithub = async () => {
-    await authService.loginWithGithub();
+    dispatch({ type: 'AUTH_START' });
+    const GITHUB_CLIENT_ID = import.meta.env.VITE_GITHUB_CLIENT_ID;
+    
+    // Redirect về đúng trang Login (/login) để useEffect ở trên bắt được code
+    const REDIRECT_URI = `${window.location.origin}/login`; 
+    
+    const githubUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=user:email`;
+    window.location.href = githubUrl;
   };
 
   const loginWithMicrosoft = async () => {
@@ -189,7 +241,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         logout,
         loginWithGoogle,
+        loginWithGoogleToken,
         loginWithGithub,
+        loginWithGithubCode,
         loginWithMicrosoft,
         loginWithToken,
         refreshUser,

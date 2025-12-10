@@ -20,9 +20,17 @@ export const authService = {
     window.location.href = googleAuthUrl;
   },
 
+  async loginWithGoogleToken(token: string): Promise<AuthResponse & { user: User }> {
+    return api.post<AuthResponse & { user: User }>('/auth/google/token', { token });
+  },
+
   async loginWithGithub(): Promise<void> {
     const githubAuthUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8002'}/auth/github`;
     window.location.href = githubAuthUrl;
+  },
+
+  async loginWithGithubCode(code: string): Promise<AuthResponse & { user: User }> {
+    return api.post<AuthResponse >('/auth/github', { code });
   },
 
   async loginWithMicrosoft(): Promise<void> {
@@ -49,7 +57,10 @@ export const authService = {
 
   // Get user info from API (uses token from localStorage via api.ts)
   async getInfoUserByToken(): Promise<User> {
-    return api.get<User>('/users/me');
+    console.log('Calling getInfoUserByToken');
+    const result = await api.get<User>('/users/me');
+    console.log('getInfoUserByToken result:', result);
+    return result;
   },
   
   // Store token in localStorage

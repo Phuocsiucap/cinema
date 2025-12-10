@@ -1,55 +1,20 @@
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import RedirectResponse
 import jwt
 import datetime
 from dotenv import load_dotenv
 import os
-
-from authlib.integrations.starlette_client import OAuth
+import httpx
 import uuid
+from google.oauth2 import id_token
+from google.auth.transport import requests
+from starlette.concurrency import run_in_threadpool
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import update
 from app import schemas, crud, database
 from app.models import User
-from starlette.requests import Request
 
 load_dotenv()
 router = APIRouter()
-
-
-oauth = OAuth()
-oauth.register(
-    name='google',
-    client_id=os.getenv("GOOGLE_CLIENT_ID", "YOUR_GOOGLE_CLIENT_ID"),
-    client_secret=os.getenv("GOOGLE_CLIENT_SECRET", "YOUR_GOOGLE_CLIENT_SECRET"),
-    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
-    client_kwargs={
-        'scope': 'openid email profile'
-    }
-)
-
-oauth.register(
-    name='github',
-    client_id=os.getenv("GITHUB_CLIENT_ID", "YOUR_GITHUB_CLIENT_ID"),
-    client_secret=os.getenv("GITHUB_CLIENT_SECRET", "YOUR_GITHUB_CLIENT_SECRET"),
-    access_token_url='https://github.com/login/oauth/access_token',
-    authorize_url='https://github.com/login/oauth/authorize',
-    api_base_url='https://api.github.com/',
-    client_kwargs={'scope': 'user:email read:user'},
-)
-
-
-oauth.register(
-    name='microsoft',
-    client_id=os.getenv("MICROSOFT_CLIENT_ID", "YOUR_MICROSOFT_CLIENT_ID"),
-    client_secret=os.getenv("MICROSOFT_CLIENT_SECRET", "YOUR_MICROSOFT_CLIENT_SECRET"),
-    server_metadata_url='https://login.microsoftonline.com/consumers/v2.0/.well-known/openid-configuration',
-    client_kwargs={
-        'scope': 'openid email profile',
-    }
-)
-
 
 async def create_token(db: AsyncSession, db_user, expires_delta: datetime.timedelta):
     """Create JWT token and save to database"""
@@ -75,213 +40,191 @@ async def login(auth: schemas.AuthLogin, db: AsyncSession = Depends(database.get
     if not crud.verify_password(auth.password, db_user.hashed_password):
         raise HTTPException(status_code=400, detail="Email or password incorrect")
 
-    return await create_token(db, db_user, datetime.timedelta(minutes=int(os.getenv("JWT_EXPIRE_MINUTES", 30))))
+    token_data = await create_token(db, db_user, datetime.timedelta(minutes=int(os.getenv("JWT_EXPIRE_MINUTES", 30))))
+    
+    return schemas.AuthResponse(
+        access_token=token_data.token,
+        token_type="bearer",
+        user=schemas.UserResponse(
+            id=str(db_user.id),
+            email=db_user.email,
+            full_name=db_user.full_name,
+            role=db_user.role,
+            avatar_url=db_user.avatar_url,
+            is_verified=db_user.is_verified,
+            is_active=db_user.is_active
+        )
+    )
 
-@router.get("/google", response_model=schemas.AuthResponse)
-async def login_google(request: Request):
-    redirect_uri = request.url_for('auth_google_callback')
-
-    return await oauth.google.authorize_redirect(request, redirect_uri)
-
-@router.get("/google/callback")
-async def auth_google_callback(request: Request, db: AsyncSession = Depends(database.get_db)):
+@router.post("/google/token", response_model=schemas.AuthResponse)
+async def google_login(data: schemas.TokenSchema, db: AsyncSession = Depends(database.get_db)):
     try:
-        # ✅ CÁCH CHUẨN - KHÔNG CAN THIỆP VÀO STATE VALIDATION
-        token = await oauth.google.authorize_access_token(request)
-        user_info = token.get('userinfo')
-        
-        if not user_info:
-            raise HTTPException(status_code=400, detail="Failed to get user info from Google")
-        
-        email = user_info.get('email')
-        user = await crud.get_user_by_email(db, email)
-        
+        client_id = os.getenv("GOOGLE_CLIENT_ID")
+        if not client_id:
+            raise HTTPException(status_code=500, detail="Server misconfiguration: Missing GOOGLE_CLIENT_ID")
+
+        # 1. Xác thực ID Token (Chạy trong threadpool để tránh block async loop)
+        idinfo = await run_in_threadpool(
+            id_token.verify_oauth2_token,
+            data.token,
+            requests.Request(),
+            client_id
+        )
+
+        # Kiểm tra email đã xác thực từ phía Google chưa
+        if not idinfo.get("email_verified"):
+             raise HTTPException(status_code=400, detail="Google account email is not verified")
+
+        # 2. Lấy thông tin user
+        user_email = idinfo['email']
+        user_name = idinfo.get('name')
+        user_picture = idinfo.get('picture')
+        google_id = str(idinfo.get('sub'))
+
+        # 3. Kiểm tra user trong DB
+        user = await crud.get_user_by_email(db, user_email)
+
         if user:
+            # Nếu user đã tồn tại, cập nhật avatar nếu chưa có hoặc google_id
             if not user.google_id:
-                user.google_id = str(user_info.get('sub'))
-                await db.commit()
-                await db.refresh(user)
+                user.google_id = google_id
+            
+            # Tùy chọn: Update avatar nếu user chưa có avatar
+            if not user.avatar_url and user_picture:
+                user.avatar_url = user_picture
+                
+            await db.commit()
+            await db.refresh(user)
         else:
+            # Tạo user mới
             new_user = User(
                 id=uuid.uuid4(),
-                full_name=user_info.get('name'),
-                email=email,
-                google_id=str(user_info.get('sub')),
-                avatar_url=user_info.get('picture'),
+                full_name=user_name,
+                email=user_email,
+                google_id=google_id,
+                avatar_url=user_picture,
                 is_active=True,
-                is_verified=True,
-                hashed_password=""  # OAuth không cần mật khẩu
+                is_verified=True, # Google đã verify email rồi
+                hashed_password=""
             )
             db.add(new_user)
             await db.commit()
             await db.refresh(new_user)
             user = new_user
-        
-        token_data = await create_token(db, user, datetime.timedelta(minutes=30))
-        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-        return RedirectResponse(url=f"{frontend_url}/#/auth/callback?token={token_data.token}")
-        
-    except Exception as e:
-        print(f"🔥 Google OAuth failed: {str(e)}")
-        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-        # Thêm detail cho debug
-        return RedirectResponse(url=f"{frontend_url}/login?error=google_auth_failed&detail={str(e)}")
 
-@router.get("/github", response_model=schemas.AuthResponse)
-async def login_github(request: Request):
-    redirect_uri = request.url_for('auth_github_callback')
-    return await oauth.github.authorize_redirect(request, redirect_uri)
-
-@router.get("/github/callback")
-async def auth_github_callback(request: Request, db: AsyncSession = Depends(database.get_db)):
-    try:
-        try:
-            token = await oauth.github.authorize_access_token(request)
-        except Exception as state_error:
-            if "mismatching_state" in str(state_error):
-                # Ignore state mismatch and get token manually
-                params = dict(request.query_params)
-                token = await oauth.github._client.fetch_token(
-                    code=params.get('code'),
-                    redirect_uri=str(request.url_for('auth_github_callback'))
-                )
-            else:
-                raise
-        resp = await oauth.github.get('user', token=token)
-        user_info = resp.json()
-
-        github_id = str(user_info.get('id'))
-        name = user_info.get('name') or user_info.get('login')
-        email = user_info.get('email')
-
-        if not email:
-            emails_resp = await oauth.github.get('user/emails', token=token)
-            emails_info = emails_resp.json()
-            primary_email_info = next(
-                (e for e in emails_info if e.get('primary') is True and e.get('verified') is True), 
-                None
-            )
-
-            # print("emails_info: ", emails_info)
-            # print("primary_email_info: ", primary_email_info)
-
-            if primary_email_info:
-                email = primary_email_info['email']
-            else:
-                raise HTTPException(
-                    status_code=400, 
-                    detail="GitHub user has private email and no verifiable public email."
-                )
-        user = await crud.get_user_by_email(db, email)
-        if user:
-            if user.github_id is None:
-                user.github_id = str(user_info.get('id'))
-                await db.commit()
-                await db.refresh(user)
-        if not user:
-            new_user = User(
-                id=uuid.uuid4(),
-                full_name=name,
-                email=email,
-                phone_number=None,
-                hashed_password="",
-                github_id=str(user_info.get('id')),
-                avatar_url=user_info.get('avatar_url'),
-                is_active=True,
-                is_verified=True,
-            )
-            db.add(new_user)
-            await db.commit()
-            await db.refresh(new_user)
-            user = new_user
+        # 4. Tạo JWT token
         token_data = await create_token(db, user, datetime.timedelta(minutes=int(os.getenv("JWT_EXPIRE_MINUTES", 30))))
-        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-        return RedirectResponse(url=f"{frontend_url}/#/auth/callback?token={token_data.token}")
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"Auth error: {str(e)}") 
-        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-        return RedirectResponse(url=f"{frontend_url}/login?error=auth_failed")
-
-@router.get("/microsoft", response_model=schemas.AuthResponse)
-async def login_microsoft(request: Request):
-    """API chuyển hướng người dùng sang Microsoft để đăng nhập."""
-    redirect_uri = request.url_for('auth_microsoft_callback')
-    return await oauth.microsoft.authorize_redirect(request, redirect_uri)
-
-@router.get("/microsoft/callback")
-async def auth_microsoft_callback(request: Request, db: AsyncSession = Depends(database.get_db)):
-    """API xử lý kết quả trả về từ Microsoft (Callback)"""
-    try:
-        # 1. Lấy Access Token và User Info
-        try:
-            token = await oauth.microsoft.authorize_access_token(request)
-        except Exception as state_error:
-            if "mismatching_state" in str(state_error):
-                # Ignore state mismatch and get token manually
-                params = dict(request.query_params)
-                token = await oauth.microsoft._client.fetch_token(
-                    code=params.get('code'),
-                    redirect_uri=str(request.url_for('auth_microsoft_callback'))
-                )
-            else:
-                raise
-
-        # Microsoft (OIDC) thường trả về thông tin người dùng ngay trong token/userinfo
-        user_info = token.get('userinfo')
-
-        if not user_info:
-             raise HTTPException(status_code=400, detail="Failed to get user info from Microsoft")
-
-        # 2. LẤY DỮ LIỆU MICROSOFT (Key: 'sub' là ID, 'upn' hoặc 'email' là email)
-        email = user_info.get('email') or user_info.get('upn') 
-        microsoft_id = str(user_info.get('sub')) 
-        name = user_info.get('name') or user_info.get('preferred_username')
-
-        if not email:
-            raise HTTPException(status_code=400, detail="Microsoft email not available.")
-
-        # --- 3. UPSERT LOGIC (Tìm kiếm hoặc Tạo mới) ---
-        user = await crud.get_user_by_email(db, email)
-
-        if user:
-            if user.microsoft_id is None:
-                user.microsoft_id = microsoft_id
-                await db.commit()
-                await db.refresh(user)
-        else:
-            # TẠO MỚI (INSERT)
-            new_user = User(
-                id=uuid.uuid4(),
-                full_name=name,
-                email=email,
-                hashed_password="",
-                microsoft_id=microsoft_id, 
-                is_active=True,
-                is_verified=True,
+        
+        return schemas.AuthResponse(
+            access_token=token_data.token,
+            token_type="bearer",
+            user=schemas.UserResponse(
+                id=str(user.id),
+                email=user.email,
+                full_name=user.full_name,
+                role=user.role,
+                avatar_url=user.avatar_url,
+                is_verified=user.is_verified,
+                is_active=user.is_active
             )
-            db.add(new_user)
-            await db.commit()
-            await db.refresh(new_user)
-            user = new_user
+        )
 
-        # 4. TẠO VÀ TRẢ VỀ JWT TOKEN CỦA HỆ THỐNG
-        token_data = await create_token(db, user, datetime.timedelta(minutes=int(os.getenv("JWT_EXPIRE_MINUTES", 30))))
-        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-        return RedirectResponse(url=f"{frontend_url}/#/auth/callback?token={token_data.token}")
-
-    except HTTPException:
-        raise
+    except ValueError as e:
+        # Token hết hạn hoặc không hợp lệ
+        raise HTTPException(status_code=401, detail=f"Invalid Google Token: {str(e)}")
     except Exception as e:
-        print(f"Microsoft auth error: {str(e)}")
-        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-        return RedirectResponse(url=f"{frontend_url}/login?error=auth_failed")
+        raise HTTPException(status_code=400, detail=f"Login failed: {str(e)}")
 
-@router.post("/logout")
-async def logout(auth: schemas.AuthLogout, db: AsyncSession = Depends(database.get_db)):
-    await crud.revoke_token(db, auth.token)
-    return {"message": "Token revoked successfully"}
+@router.post("/github", response_model=schemas.AuthResponse)
+async def github_login(data: schemas.GithubLoginSchema, db: AsyncSession = Depends(database.get_db)):
+    try:
+        # 1. Đổi Code lấy Access Token
+        async with httpx.AsyncClient() as client:
+            token_res = await client.post(
+                "https://github.com/login/oauth/access_token",
+                headers={"Accept": "application/json"},
+                params={
+                    "client_id": os.getenv("GITHUB_CLIENT_ID", "YOUR_GITHUB_CLIENT_ID"),
+                    "client_secret": os.getenv("GITHUB_CLIENT_SECRET", "YOUR_GITHUB_CLIENT_SECRET"),
+                    "code": data.code
+                }
+            )
+            token_data = token_res.json()
+
+            if "error" in token_data:
+                raise HTTPException(status_code=400, detail="Invalid GitHub Code")
+
+            access_token = token_data["access_token"]
+
+            # 2. Lấy thông tin User
+            user_res = await client.get(
+                "https://api.github.com/user",
+                headers={"Authorization": f"Bearer {access_token}"}
+            )
+            user_info = user_res.json()
+
+            # 3. Lấy Email (GitHub có thể ẩn email, cần gọi API riêng nếu email là private)
+            email = user_info.get("email")
+            if not email:
+                email_res = await client.get(
+                    "https://api.github.com/user/emails",
+                    headers={"Authorization": f"Bearer {access_token}"}
+                )
+                # Lấy email chính (primary)
+                emails = email_res.json()
+                primary_email = next((e for e in emails if e["primary"]), None)
+                email = primary_email["email"] if primary_email else None
+
+            if not email:
+                raise HTTPException(status_code=400, detail="Unable to get email from GitHub")
+
+            # 4. Kiểm tra user trong DB
+            user = await crud.get_user_by_email(db, email)
+
+            if user:
+                # Update github_id nếu chưa có
+                if not user.github_id:
+                    user.github_id = str(user_info.get('id'))
+                    await db.commit()
+                    await db.refresh(user)
+            else:
+                # Tạo user mới
+                new_user = User(
+                    id=uuid.uuid4(),
+                    full_name=user_info.get('name') or user_info.get('login'),
+                    email=email,
+                    github_id=str(user_info.get('id')),
+                    avatar_url=user_info.get('avatar_url'),
+                    is_active=True,
+                    is_verified=True,
+                    hashed_password=""  # OAuth không cần mật khẩu
+                )
+                db.add(new_user)
+                await db.commit()
+                await db.refresh(new_user)
+                user = new_user
+
+            # 5. Tạo JWT token
+            token_data = await create_token(db, user, datetime.timedelta(minutes=int(os.getenv("JWT_EXPIRE_MINUTES", 30))))
+            print(f"GitHub login successful for user {user.email}, token: {token_data.token[:20]}...")
+            
+            # Trả về cả token và user info
+            return schemas.AuthResponse(
+                access_token=token_data.token,
+                token_type="bearer",
+                user=schemas.UserResponse(
+                    id=str(user.id),
+                    email=user.email,
+                    full_name=user.full_name,
+                    role=user.role,
+                    avatar_url=user.avatar_url,
+                    is_verified=user.is_verified,
+                    is_active=user.is_active
+                )
+            )
+
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"GitHub OAuth failed: {str(e)}")
 
 @router.post("/register", status_code=201)
 async def register(auth: schemas.AuthRegister, db: AsyncSession = Depends(database.get_db)):
@@ -289,3 +232,9 @@ async def register(auth: schemas.AuthRegister, db: AsyncSession = Depends(databa
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     await crud.create_user(db=db, user=auth)
+    return {"message": "User registered successfully"}
+
+@router.post("/logout")
+async def logout(auth: schemas.AuthLogout, db: AsyncSession = Depends(database.get_db)):
+    await crud.revoke_token(db, auth.token)
+    return {"message": "Token revoked successfully"}

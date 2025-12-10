@@ -1,3 +1,22 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Google Login Button Customization */
+div[role="button"] {
+  width: 100% !important;
+  border-radius: 8px !important;
+  border: 1px solid #374151 !important;
+  background: #111827 !important;
+  transition: all 0.2s !important;
+}
+
+div[role="button"]:hover {
+  background: #1f2937 !important;
+}
+
+div[role="button"] span {
+  color: white !important;
+  font-family: inherit !important;
+  font-weight: 500 !important;
+}

@@ -1,66 +1,52 @@
-# app/main.py - PHIÊN BẢN ĐÃ ĐƯỢC TỐI ƯU CHO RENDER
+# app/main.py
 import os
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.sessions import SessionMiddleware
-from starlette.middleware.proxy_headers import ProxyHeadersMiddleware
 from dotenv import load_dotenv
 from contextlib import asynccontextmanager
 
+# Import các router và database
 from app.routers.auth import router as auth_router
 from app.routers.users import router as users_router
 from app.database import Base, engine
 
 load_dotenv()
 
+# --- 1. QUẢN LÝ KẾT NỐI DB ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Mở kết nối DB khi app khởi động
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield
+    # Đóng kết nối DB khi app tắt
     await engine.dispose()
 
 def create_app() -> FastAPI:
     app = FastAPI(title="Auth Service", version="1.0.0", lifespan=lifespan)
     
-    # 👇 1. PROXY HEADERS MIDDLEWARE ĐẦU TIÊN
-    app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
-    
-    # 👇 2. SESSION MIDDLEWARE VỚI CẤU HÌNH PRODUCTION
-    is_render = "RENDER_SERVICE_ID" in os.environ
-    app.add_middleware(
-        SessionMiddleware,
-        secret_key=os.getenv("SESSION_SECRET"),  # BẮT BUỘC CÓ TRÊN RENDER
-        same_site="none" if is_render else "lax",
-        https_only=is_render,
-        max_age=3600
-    )
-    
-    # 👇 3. CORS CHÍNH XÁC CHO OAUTH
-    frontend_url = "http://localhost:8000"
-    origins = [frontend_url] if is_render else ["*"]
-    
+    # --- 2. CẤU HÌNH CORS ---
+    # Quan trọng: Cho phép React gửi request lên
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=origins,
-        allow_credentials=True,  # BẮT BUỘC CHO SESSION
+        allow_origins=["*"], # Hoặc điền cụ thể ["http://localhost:5173", "https://web-cua-ban.onrender.com"]
+        allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
     
+    # --- 3. ĐĂNG KÝ ROUTER ---
     app.include_router(auth_router, prefix="/api/v1/auth", tags=["Authentication"])
     app.include_router(users_router, prefix="/api/v1/users", tags=["Users"])
     
+    # --- 4. HEALTH CHECK ---
     @app.get("/health")
     async def health_check():
         return {
-            "status": "running",
-            "environment": "render" if is_render else "local",
-            "session_config": {
-                "same_site": "none" if is_render else "lax",
-                "https_only": is_render
-            }
+            "status": "active",
+            "mode": "JWT Stateless - No Proxy Headers",
+            "environment": "render" if os.getenv("RENDER") else "local"
         }
     
     return app
@@ -68,11 +54,16 @@ def create_app() -> FastAPI:
 app = create_app()
 
 if __name__ == "__main__":
+    # Lấy port từ biến môi trường của Render (mặc định 8000 nếu chạy local)
     port = int(os.getenv("PORT", 8000))
+    
+    # Kiểm tra xem đang chạy trên Render hay Local
+    is_on_render = os.getenv("RENDER") is not None
+    
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",
         port=port,
-        reload=not os.getenv("RENDER_SERVICE_ID"),
-        workers=4 if os.getenv("RENDER_SERVICE_ID") else 1
+        reload=not is_on_render,      # Local thì reload code tự động
+        workers=4 if is_on_render else 1 # Render thì chạy nhiều workers cho khỏe
     )
