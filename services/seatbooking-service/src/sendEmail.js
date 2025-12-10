@@ -85,7 +85,7 @@ export async function verifyOTP(req, res) {
 
     const key = `otp-verify-email:${userId}`;
     const storedOtp = await redis.get(key);
-    if (!storedOtp || storedOtp !== otpCode) {
+    if (!storedOtp || storedOtp.toString !== otpCode.toString) {
         return res.status(400).json({ success: false, message: 'Mã OTP không hợp lệ hoặc đã hết hạn.' });
     }
     await redis.del(key);
