@@ -145,20 +145,36 @@ export function ManageTicketsPage() {
     setIsDetailModalOpen(true);
   };
 
-  const handleCheckin = async (booking: Booking) => {
+  const handleCheckinSeat = async (seatBookingId: string) => {
     try {
-      const data = await bookingService.checkinBooking(booking.bookingId);
+      const data = await bookingService.checkinSeatBooking(seatBookingId);
 
       if (data.success) {
         loadBookings(pagination.page);
-        setIsDetailModalOpen(false);
-        setSelectedBooking(null);
+        // Update the selected booking data
+        if (selectedBooking) {
+          setSelectedBooking({
+            ...selectedBooking,
+            seatDetails: selectedBooking.seatDetails.map(seat => 
+              seat.seatBookingId === seatBookingId 
+                ? { ...seat, isUsed: true }
+                : seat
+            ),
+            usedSeats: selectedBooking.usedSeats + 1,
+            unusedSeats: selectedBooking.unusedSeats - 1,
+            status: selectedBooking.usedSeats + 1 === selectedBooking.totalSeats 
+              ? 'used' 
+              : selectedBooking.usedSeats + 1 > 0 
+                ? 'partial' 
+                : 'inactive'
+          });
+        }
       } else {
-        alert(data.message || 'Cannot activate ticket');
+        alert(data.message || 'Cannot check-in seat');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'An error occurred while activating the ticket';
-      console.error('Failed to checkin booking:', errorMessage);
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred while checking in the seat';
+      console.error('Failed to checkin seat:', errorMessage);
       alert(errorMessage);
     }
   };
@@ -541,14 +557,27 @@ export function ManageTicketsPage() {
                   {/* Seats */}
                   <div>
                     <span className="text-gray-400 text-sm block mb-2">Seats ({selectedBooking.totalSeats} seats)</span>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedBooking.seats.split(', ').map((seat, index) => (
-                        <span 
-                          key={index}
-                          className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-lg text-sm font-medium"
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {selectedBooking.seatDetails.map((seat) => (
+                        <div 
+                          key={seat.seatBookingId}
+                          className={`p-2 rounded-lg border text-sm font-medium flex items-center justify-between ${
+                            seat.isUsed 
+                              ? 'bg-green-500/20 border-green-500/30 text-green-400'
+                              : 'bg-blue-500/20 border-blue-500/30 text-blue-400'
+                          }`}
                         >
-                          {seat}
-                        </span>
+                          <span>{seat.row}{seat.number} ({seat.seatType})</span>
+                          {!seat.isUsed && (
+                            <button
+                              onClick={() => handleCheckinSeat(seat.seatBookingId)}
+                              className="ml-2 p-1 hover:bg-green-600/20 rounded text-green-400 hover:text-green-300 transition-colors"
+                              title="Check-in this seat"
+                            >
+                              <CheckCircle size={14} />
+                            </button>
+                          )}
+                        </div>
                       ))}
                     </div>
                   </div>

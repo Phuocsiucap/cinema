@@ -40,6 +40,21 @@ export interface RevenueData {
   data: ComparisonItem[];
 }
 
+export interface RevenueDetailItem {
+  date: string; // ISO date string
+  revenue: number;
+  tickets_sold: number;
+}
+
+export interface RevenueDetailResponse {
+  entity_id: string;
+  entity_name: string;
+  period_type: string;
+  total_revenue: number;
+  total_tickets: number;
+  data: RevenueDetailItem[];
+}
+
 export interface RevenueParams {
   periodType: 'day' | 'month' | 'year';
   startDate: string;
@@ -65,6 +80,17 @@ export const revenueService = {
       return data;
     } catch (error) {
       console.error('Failed to fetch revenue data:', error);
+      throw error;
+    }
+  }
+  ,
+  async getRevenueDetail(entityType: 'cinema' | 'room' | 'movie', entityId: string, startDate: string, endDate: string): Promise<RevenueDetailResponse> {
+    try {
+      const queryParams = new URLSearchParams({ start_date: startDate, end_date: endDate });
+      const data = await api.get<RevenueDetailResponse>(`/revenue/detail/${entityType}/${entityId}?${queryParams}`);
+      return data;
+    } catch (error) {
+      console.error('Failed to fetch revenue detail:', error);
       throw error;
     }
   }

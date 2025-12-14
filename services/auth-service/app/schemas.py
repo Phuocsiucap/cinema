@@ -17,6 +17,7 @@ class UserResponse(BaseModel):
     role: UserRole
     avatar_url: Optional[str] = None
     is_verified: bool
+    is_active: bool
 
     class Config:
         from_attributes = True

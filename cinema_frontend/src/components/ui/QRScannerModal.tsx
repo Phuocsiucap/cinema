@@ -12,12 +12,12 @@ interface ScanResult {
   success: boolean;
   message: string;
   data?: {
-    bookingId: string;
-    seatId?: string;
-    movieTitle?: string;
-    seat?: string;
-    customerName?: string;
-    showtime?: string;
+    seatbookingId: string;
+    movieTitle: string;
+    seat: string;
+    customerName: string;
+    showtime: string;
+    qr_data: string;
   };
 }
 
@@ -26,7 +26,7 @@ export function QRScannerModal({ isOpen, onClose }: QRScannerModalProps) {
   const [isScanning, setIsScanning] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Draggable state
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -43,7 +43,7 @@ export function QRScannerModal({ isOpen, onClose }: QRScannerModalProps) {
         y: (window.innerHeight - 600) / 2
       });
     }
-    
+
     return () => {
       stopScanner();
     };
@@ -53,7 +53,7 @@ export function QRScannerModal({ isOpen, onClose }: QRScannerModalProps) {
     try {
       setError(null);
       setScanResult(null);
-      
+
       if (!scannerRef.current) {
         scannerRef.current = new Html5Qrcode("qr-reader");
       }
@@ -65,9 +65,9 @@ export function QRScannerModal({ isOpen, onClose }: QRScannerModalProps) {
           qrbox: { width: 250, height: 250 },
         },
         onScanSuccess,
-        () => {} // Ignore scan failures
+        () => { } // Ignore scan failures
       );
-      
+
       setIsScanning(true);
     } catch (err) {
       console.error('Failed to start scanner:', err);
@@ -89,7 +89,7 @@ export function QRScannerModal({ isOpen, onClose }: QRScannerModalProps) {
   const onScanSuccess = async (decodedText: string) => {
     // Stop scanner temporarily
     await stopScanner();
-    
+
     // Process the scanned QR code
     await processQRCode(decodedText);
   };
@@ -99,47 +99,43 @@ export function QRScannerModal({ isOpen, onClose }: QRScannerModalProps) {
     setScanResult(null);
 
     try {
-      // Parse QR data
-      let bookingId: string | null = null;
-      let seatId: string | null = null;
 
       if (qrData.startsWith('TICKET-')) {
-        // Format: TICKET-{bookingId}-{seatId}
-        const parts = qrData.split('-');
-        bookingId = parts[1];
-        seatId = parts.slice(2).join('-'); // In case seatId contains dashes
-      } else if (qrData.startsWith('BOOKING-')) {
-        // Format: BOOKING-{bookingId}
-        bookingId = qrData.replace('BOOKING-', '');
+        // Format: TICKET-{seatbookingId}
+        console.log('Parsed QR Data:', qrData);
       } else {
-        // Try to use as bookingId directly
-        bookingId = qrData;
-      }
-
-      if (!bookingId) {
         throw new Error('Mã QR không hợp lệ');
       }
-
       // Call API to verify and check-in
-      const response = await api.post<{ success: boolean; message?: string; data?: { movie_title?: string; seats?: string; customer_name?: string; showtime?: string } }>(`/bookings/${bookingId}/checkin`, {
-        seat_id: seatId,
+      const response = await api.post<{
+        success: boolean;
+        message: string;
+        data?: {
+          seatbookingId: string;
+          movieTitle: string;
+          seat: string;
+          customerName: string;
+          showtime: string;
+          qr_data: string;
+        }
+      }>(`/bookings/seats/checkin`, {
         qr_data: qrData
       });
 
-      if (response.success) {
+      if (response.success && response.data) {
         setScanResult({
           success: true,
-          message: 'Check-in thành công!',
+          message: response.message || 'Check-in thành công!',
           data: {
-            bookingId,
-            seatId: seatId || undefined,
-            movieTitle: response.data?.movie_title || 'N/A',
-            seat: response.data?.seats || 'N/A',
-            customerName: response.data?.customer_name || 'N/A',
-            showtime: response.data?.showtime || 'N/A',
+            seatbookingId: response.data.seatbookingId,
+            movieTitle: response.data.movieTitle,
+            seat: response.data.seat,
+            customerName: response.data.customerName,
+            showtime: response.data.showtime,
+            qr_data: response.data.qr_data,
           }
         });
-      } 
+      }
     } catch (err: any) {
       console.error('Check-in error:', err);
       setScanResult({
@@ -248,11 +244,11 @@ export function QRScannerModal({ isOpen, onClose }: QRScannerModalProps) {
   return (
     <div className="fixed inset-0 z-50 pointer-events-none">
       {/* Backdrop - click to close */}
-      <div 
+      <div
         className="absolute inset-0 bg-black/50 pointer-events-auto"
         onClick={handleClose}
       />
-      
+
       {/* Modal - Draggable */}
       <div
         ref={modalRef}
@@ -290,8 +286,8 @@ export function QRScannerModal({ isOpen, onClose }: QRScannerModalProps) {
         {/* Scanner Area */}
         <div className="p-4">
           {/* QR Reader Container */}
-          <div 
-            id="qr-reader" 
+          <div
+            id="qr-reader"
             className="w-full bg-black rounded-xl overflow-hidden"
             style={{ minHeight: '300px' }}
           />
@@ -336,45 +332,54 @@ export function QRScannerModal({ isOpen, onClose }: QRScannerModalProps) {
 
           {/* Scan Result */}
           {scanResult && (
-            <div className={`mt-4 p-4 rounded-lg border ${
-              scanResult.success 
-                ? 'bg-green-500/20 border-green-500/50' 
-                : 'bg-red-500/20 border-red-500/50'
-            }`}>
+            <div className={`mt-4 p-4 rounded-lg border ${scanResult.success
+              ? 'bg-green-500/20 border-green-500/50'
+              : 'bg-red-500/20 border-red-500/50'
+              }`}>
               <div className="flex items-center gap-3 mb-3">
                 {scanResult.success ? (
                   <CheckCircle size={32} className="text-green-400" />
                 ) : (
                   <XCircle size={32} className="text-red-400" />
                 )}
-                <span className={`font-bold text-lg ${
-                  scanResult.success ? 'text-green-400' : 'text-red-400'
-                }`}>
+                <span className={`font-bold text-lg ${scanResult.success ? 'text-green-400' : 'text-red-400'
+                  }`}>
                   {scanResult.message}
                 </span>
               </div>
 
               {scanResult.success && scanResult.data && (
-                <div className="space-y-2 text-sm border-t border-white/10 pt-3 mt-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Phim:</span>
-                    <span className="text-white font-medium">{scanResult.data.movieTitle}</span>
+                <div className="space-y-3 border-t border-white/10 pt-3 mt-3">
+                  {/* Movie Title - Highlighted */}
+                  <div className="text-center pb-2">
+                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Phim</p>
+                    <h3 className="text-white font-bold text-lg">{scanResult.data.movieTitle}</h3>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Ghế:</span>
-                    <span className="text-white font-medium">{scanResult.data.seat}</span>
+
+                  {/* Seat - Big Badge */}
+                  <div className="flex justify-center py-2">
+                    <div className="bg-green-500/30 border border-green-500 rounded-lg px-6 py-3 text-center">
+                      <p className="text-xs text-green-300 uppercase tracking-wider mb-1">Ghế</p>
+                      <span className="text-green-400 font-bold text-2xl">{scanResult.data.seat}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Khách hàng:</span>
-                    <span className="text-white font-medium">{scanResult.data.customerName}</span>
+
+                  {/* Info Grid */}
+                  <div className="grid grid-cols-2 gap-3 text-sm bg-white/5 rounded-lg p-3">
+                    <div>
+                      <p className="text-gray-500 text-xs mb-0.5">Khách hàng</p>
+                      <p className="text-white font-medium">{scanResult.data.customerName}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 text-xs mb-0.5">Suất chiếu</p>
+                      <p className="text-white font-medium">{scanResult.data.showtime}</p>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Suất chiếu:</span>
-                    <span className="text-white font-medium">{scanResult.data.showtime}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Mã vé:</span>
-                    <span className="text-white font-mono text-xs">{scanResult.data.bookingId}</span>
+
+                  {/* Ticket ID - Small at bottom */}
+                  <div className="text-center pt-2 border-t border-white/5">
+                    <p className="text-gray-500 text-xs">Mã vé</p>
+                    <p className="text-gray-400 font-mono text-xs mt-0.5">{scanResult.data.seatbookingId}</p>
                   </div>
                 </div>
               )}

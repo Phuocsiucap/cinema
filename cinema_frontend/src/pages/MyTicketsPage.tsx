@@ -37,10 +37,16 @@ export default function MyTicketsPage() {
         setIsLoading(true);
         // getUserBookings không cần userId - backend lấy từ JWT token
         const response = await getUserBookings();
-        if (response.success && response.data) {
-          setBookings(response.data);
+        if (response && (response as any).success) {
+          const data = (response as any).data;
+          if (Array.isArray(data)) {
+            setBookings(data);
+          } else if (data && Array.isArray((data as any).bookings)) {
+            setBookings((data as any).bookings);
+          } else {
+            setBookings([]);
+          }
         } else {
-          // Fallback to empty
           setBookings([]);
         }
       } catch (err) {
@@ -127,12 +133,14 @@ export default function MyTicketsPage() {
     return new Date(booking.showtime.start_time) > new Date();
   };
 
-  const filteredBookings = bookings.filter(booking => {
-    if (filter === 'all') return true;
-    if (filter === 'upcoming') return isUpcoming(booking);
-    if (filter === 'past') return !isUpcoming(booking);
-    return true;
-  });
+  const filteredBookings = Array.isArray(bookings)
+    ? bookings.filter(booking => {
+        if (filter === 'all') return true;
+        if (filter === 'upcoming') return isUpcoming(booking);
+        if (filter === 'past') return !isUpcoming(booking);
+        return true;
+      })
+    : [];
 
   const getSeatLabels = (tickets: BookingTicket[]) => {
     return tickets

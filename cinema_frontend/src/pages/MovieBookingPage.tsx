@@ -71,13 +71,10 @@ export default function MovieBookingPage() {
       
       try {
         setIsLoadingShowtimes(true);
-        const data = await showtimeService.getShowtimesByMovie(movieId);
+        const data = await showtimeService.getUpcomingShowtimesByMovie(movieId);
+        console.log('Fetched showtimes:', data);
         
-        // Filter showtimes from current time onwards
-        const now = new Date();
-        const futureShowtimes = data.filter(st => new Date(st.start_time) >= now);
-        
-        setAllShowtimes(futureShowtimes);
+        setAllShowtimes(data);
       } catch (err) {
         console.error('Failed to load showtimes:', err);
       } finally {
@@ -313,21 +310,36 @@ export default function MovieBookingPage() {
                                   <p className="text-gray-400 text-sm mb-2">{room.name}</p>
                                   <div className="flex flex-wrap gap-2">
                                     {room.showtimes.map((showtime) => {
-                                      const isSelected = selectedShowtime?.id === showtime.id;
-                                      const isPast = new Date(showtime.start_time) < new Date();
+                                        const isSelected = selectedShowtime?.id === showtime.id;
+                                        const now = new Date();
+                                        const startTime = new Date(showtime.start_time);
+                                        // Keep selling until 10 minutes AFTER showtime starts
+                                        const SALE_WINDOW_AFTER_MIN = 10; // allow sales until 10 minutes after start
+                                        const msSinceStart = now.getTime() - startTime.getTime();
+                                        const msUntilEndOfWindow = startTime.getTime() + SALE_WINDOW_AFTER_MIN * 60 * 1000 - now.getTime();
+                                        const isSalesClosed = msUntilEndOfWindow < 0; // closed if now is later than start + window
+                                        const cutoffTime = new Date(startTime.getTime() + SALE_WINDOW_AFTER_MIN * 60 * 1000);
+
+                                        const handleShowtimeClick = () => {
+                                          if (isSalesClosed) {
+                                            alert(`Bán vé đã đóng. Bán vé sẽ đóng sau ${SALE_WINDOW_AFTER_MIN} phút kể từ bắt đầu suất, lúc ${cutoffTime.toLocaleTimeString('vi-VN')} ngày ${cutoffTime.toLocaleDateString('vi-VN')}`);
+                                            return;
+                                          }
+                                          handleSelectShowtime(showtime);
+                                        };
                                       
                                       return (
                                         <button
                                           key={showtime.id}
-                                          onClick={() => !isPast && handleSelectShowtime(showtime)}
-                                          disabled={isPast}
-                                          className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                                            isPast
-                                              ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
-                                              : isSelected
-                                              ? 'bg-amber-500 text-black ring-2 ring-amber-300'
-                                              : 'bg-gray-800 text-white hover:bg-gray-700'
-                                          }`}
+                                          onClick={handleShowtimeClick}
+                                          disabled={isSalesClosed}
+                                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                                              isSalesClosed
+                                                ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
+                                                : isSelected
+                                                ? 'bg-amber-500 text-black ring-2 ring-amber-300'
+                                                : 'bg-gray-800 text-white hover:bg-gray-700'
+                                            }`}
                                         >
                                           <span className="font-bold">{formatTime(showtime.start_time)}</span>
                                           <span className="text-xs ml-2 opacity-75">

@@ -9,7 +9,9 @@ from app.schemas import (
     RevenueComparisonRequest,
     CinemaEntityInfo,
     RoomEntityInfo,
-    MovieEntityInfo
+    MovieEntityInfo,
+    RevenueDetailResponse,
+    RevenueDetailItem
 )
 
 
@@ -170,4 +172,83 @@ async def get_revenue_comparison(db: AsyncSession, params: RevenueComparisonRequ
         end_date=end_date.date() if isinstance(end_date, datetime) else end_date,
         total_entities=total_entities,
         data=comparison_data
+    )
+
+async def get_revenue_detail(db: AsyncSession, entity_type: str, entity_id: str, start_date, end_date) -> RevenueDetailResponse:
+    """Get detailed daily revenue for a specific entity"""
+    
+    # 1. Base Query: Group by Date
+    query = select(
+        func.date(Booking.created_at).label('date'),
+        func.sum(SeatBooking.price).label('revenue'),
+        func.count(SeatBooking.id).label('tickets_sold')
+    ).select_from(SeatBooking)\
+    .join(Booking, SeatBooking.booking_id == Booking.id)\
+    .join(Showtime, SeatBooking.showtime_id == Showtime.id)\
+    .where(and_(
+        Booking.status == 'CONFIRMED',
+        Booking.created_at.between(start_date, end_date)
+    ))
+
+    # 2. Filter by Entity Type
+    entity_name = "Unknown"
+    
+    if entity_type == 'cinema':
+        # Join structure: Showtime -> CinemaRoom -> Cinema
+        query = query.join(CinemaRoom, Showtime.room_id == CinemaRoom.id)\
+                     .join(Cinema, CinemaRoom.cinema_id == Cinema.id)\
+                     .where(Cinema.id == entity_id)
+        
+        # Get entity name
+        cinema = await db.get(Cinema, entity_id)
+        if cinema: entity_name = cinema.name
+            
+    elif entity_type == 'room':
+        # Join structure: Showtime -> CinemaRoom
+        query = query.join(CinemaRoom, Showtime.room_id == CinemaRoom.id)\
+                     .where(CinemaRoom.id == entity_id)
+        
+        # Get entity name
+        room = await db.get(CinemaRoom, entity_id)
+        if room: entity_name = room.name
+
+    elif entity_type == 'movie':
+        # Join structure: Showtime -> Movie
+        query = query.join(Movie, Showtime.movie_id == Movie.id)\
+                     .where(Movie.id == entity_id)
+        
+        # Get entity name
+        movie = await db.get(Movie, entity_id)
+        if movie: entity_name = movie.title
+
+    # 3. Grouping and Ordering
+    query = query.group_by(func.date(Booking.created_at)).order_by(func.date(Booking.created_at))
+
+    result = await db.execute(query)
+    rows = result.all()
+
+    # 4. Format Response
+    detail_data = []
+    total_rev = 0.0
+    total_tix = 0
+    
+    for row in rows:
+        rev = float(row.revenue or 0)
+        tix = int(row.tickets_sold or 0)
+        
+        detail_data.append(RevenueDetailItem(
+            date=row.date,
+            revenue=rev,
+            tickets_sold=tix
+        ))
+        total_rev += rev
+        total_tix += tix
+
+    return RevenueDetailResponse(
+        entity_id=entity_id,
+        entity_name=entity_name,
+        period_type='day', # Detail view is always by day
+        total_revenue=total_rev,
+        total_tickets=total_tix,
+        data=detail_data
     )

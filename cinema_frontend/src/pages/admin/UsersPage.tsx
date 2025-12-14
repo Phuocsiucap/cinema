@@ -9,11 +9,13 @@ import {
   Loader2,
   ChevronDown,
   X,
-  Users
+  Users,
+  Ban
 } from 'lucide-react';
 import { AdminLayout } from '../../components/layouts/AdminLayout';
 import { ConfirmModal } from '../../components/ui';
 import { userService, type UserFilters, type PaginatedUsers } from '../../services/userService';
+import { useAuth } from '../../contexts/AuthContext';
 import type { User } from '../../types/auth';
 
 const ITEMS_PER_PAGE = 10;
@@ -39,6 +41,7 @@ const VERIFIED_OPTIONS = [
 
 export function UsersPage() {
   const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -113,16 +116,33 @@ export function UsersPage() {
     fetchUsers();
   }, [fetchUsers]);
 
+  const handleActivate = async (user: User) => {
+    try {
+      await userService.updateUser(user.id, { is_active: true });
+      fetchUsers();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to activate user');
+    }
+  };
+
   const handleDelete = async () => {
     if (!deleteModal.user) return;
 
+    // Check if trying to deactivate another admin
+    if (deleteModal.user.role === 'admin' && currentUser?.role === 'admin') {
+      setError('You cannot deactivate another admin account.');
+      setDeleteModal({ isOpen: false, user: null });
+      return;
+    }
+
     setIsDeleting(true);
     try {
-      await userService.deleteUser(deleteModal.user.id);
+      // Instead of deleting, deactivate the user
+      await userService.updateUser(deleteModal.user.id, { is_active: false });
       setDeleteModal({ isOpen: false, user: null });
       fetchUsers();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete user');
+      setError(err instanceof Error ? err.message : 'Failed to deactivate user');
     } finally {
       setIsDeleting(false);
     }
@@ -520,13 +540,24 @@ export function UsersPage() {
                               >
                                 <Edit2 size={18} />
                               </button>
-                              <button
-                                onClick={() => setDeleteModal({ isOpen: true, user })}
-                                className="p-1.5 rounded-md text-gray-400 hover:bg-red-500/20 hover:text-red-400 transition-colors"
-                                title="Delete user"
-                              >
-                                <Trash2 size={18} />
-                              </button>
+                              
+                              {user.is_active ? (
+                                <button
+                                  onClick={() => setDeleteModal({ isOpen: true, user })}
+                                  className="p-1.5 rounded-md text-gray-400 hover:bg-red-500/20 hover:text-red-400 transition-colors"
+                                  title="Deactivate user"
+                                >
+                                  <Ban size={18} />
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => handleActivate(user)}
+                                  className="p-1.5 rounded-md text-gray-400 hover:bg-green-500/20 hover:text-green-400 transition-colors"
+                                  title="Activate user"
+                                >
+                                  <Users size={18} />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -546,9 +577,9 @@ export function UsersPage() {
         isOpen={deleteModal.isOpen}
         onClose={() => setDeleteModal({ isOpen: false, user: null })}
         onConfirm={handleDelete}
-        title="Delete User"
-        message={`Are you sure you want to delete "${deleteModal.user?.full_name}"? This action cannot be undone.`}
-        confirmText="Delete"
+        title="Deactivate User"
+        message={`Are you sure you want to deactivate "${deleteModal.user?.full_name}"? The user will not be able to log in until reactivated.`}
+        confirmText="Deactivate"
         isLoading={isDeleting}
         variant="danger"
       />

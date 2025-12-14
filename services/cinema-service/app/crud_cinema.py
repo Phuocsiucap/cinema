@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import exc, func, select, delete
 from sqlalchemy.orm import selectinload
-from app.models import Movie, Actor, MovieActor, Cinema, CinemaRoom, Seat
+from app.models import Movie, Actor, MovieActor, Cinema, CinemaRoom, Seat, SeatBooking
 from app.schemas import MovieBase, CastMovieCreate, PaginatedMovieResponse, MovieBasicResponse, MovieResponse, CinemaCreate, AddRoomToCenema, CinemaUpdate, CinemaRoomUpdate, SeatUpdate
 from typing import List, Optional
 from fastapi import HTTPException
@@ -151,22 +151,55 @@ async def update_room(db: AsyncSession, room_id: str, data: CinemaRoomUpdate) ->
     
     # Update seats if provided
     if data.seats is not None:
-        # Delete existing seats
-        await db.execute(delete(Seat).where(Seat.room_id == room_id))
-        
-        # Create new seats
+        # Safer update: don't delete seats that have existing bookings
+        # Fetch existing seats for the room
+        existing_result = await db.execute(select(Seat).where(Seat.room_id == room_id))
+        existing_seats = { (s.row, s.number): s for s in existing_result.scalars().all() }
+
+        # Track seats that should remain (by (row,number))
+        incoming_keys = set()
+
         for seat_data in data.seats:
-            new_seat = Seat(
-                room_id=room_id,
-                row=seat_data.row,
-                number=seat_data.number,
-                seat_type=seat_data.seat_type,
-                is_active=seat_data.is_active if seat_data.is_active is not None else True
-            )
-            db.add(new_seat)
-        
-        # Update seat count
-        room.seat_count = len(data.seats)
+            key = (seat_data.row, seat_data.number)
+            incoming_keys.add(key)
+            if key in existing_seats:
+                # Update existing seat properties
+                s = existing_seats[key]
+                s.seat_type = seat_data.seat_type
+                s.is_active = seat_data.is_active if seat_data.is_active is not None else True
+            else:
+                # Create new seat
+                new_seat = Seat(
+                    room_id=room_id,
+                    row=seat_data.row,
+                    number=seat_data.number,
+                    seat_type=seat_data.seat_type,
+                    is_active=seat_data.is_active if seat_data.is_active is not None else True
+                )
+                db.add(new_seat)
+
+        # Determine existing seats that are not in incoming list -> candidate for deletion
+        to_delete = []
+        for (r, n), seat_obj in existing_seats.items():
+            if (r, n) not in incoming_keys:
+                # Check if seat has any bookings
+                booking_check = await db.execute(
+                    select(func.count()).select_from(SeatBooking).where(SeatBooking.seat_id == seat_obj.id)
+                )
+                booking_count = booking_check.scalar_one()
+                if booking_count == 0:
+                    to_delete.append(seat_obj.id)
+                else:
+                    # Can't delete seat with bookings: mark inactive so it won't be used for new showtimes
+                    seat_obj.is_active = False
+
+        # Delete seats that have no bookings
+        if to_delete:
+            await db.execute(delete(Seat).where(Seat.id.in_(to_delete)))
+
+        # Update seat_count to reflect current seats in DB for the room
+        count_result = await db.execute(select(func.count()).select_from(Seat).where(Seat.room_id == room_id))
+        room.seat_count = int(count_result.scalar_one())
     
     await db.commit()
     

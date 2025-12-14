@@ -323,6 +323,13 @@ export async function checkinBooking(
   });
 }
 
+// Check-in specific seat booking
+export async function checkinSeatBooking(
+  seatBookingId: string
+): Promise<{ success: boolean; message: string; data?: unknown }> {
+  return api.post<{ success: boolean; message: string; data?: unknown }>(`${BOOKING_API}/seats/${seatBookingId}/checkin`, {});
+}
+
 // Get tickets list (admin)
 export async function getTickets(
   page: number = 1,
@@ -398,6 +405,7 @@ export const bookingService = {
   getUserBookings,
   getBookedSeats,
   checkinBooking,
+  checkinSeatBooking,
   getTickets,
 };
 

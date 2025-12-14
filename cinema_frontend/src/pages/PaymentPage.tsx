@@ -3,7 +3,7 @@ import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { Lock, CreditCard, ChevronRight } from 'lucide-react';
 import { MainLayout } from '../components/layouts';
 import { showtimeService, type Showtime } from '../services/showtimeService';
-import { createBooking, confirmBooking } from '../services/bookingService';
+import { createBooking, confirmBooking, unlockSeats } from '../services/bookingService';
 import { useAuth } from '../contexts/AuthContext';
 import { promotionService } from '../services'
 
@@ -35,6 +35,7 @@ export default function PaymentPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [paymentCompleted, setPaymentCompleted] = useState(false);
 
   // Promotion code state
   const [promotionCode, setPromotionCode] = useState('');
@@ -86,6 +87,39 @@ export default function PaymentPage() {
       navigate('/');
     }
   }, [isLoading, showtime, navigate]);
+
+  // Handle cleanup when leaving page without completing payment
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!paymentCompleted && selectedSeats.length > 0 && showtime) {
+        // Unlock seats when user tries to leave without completing payment
+        const seatIds = selectedSeats.map(s => s.id);
+        unlockSeats(showtime.id, seatIds).catch(console.error);
+      }
+    };
+
+    const handleUnload = () => {
+      if (!paymentCompleted && selectedSeats.length > 0 && showtime) {
+        // Unlock seats when page unloads
+        const seatIds = selectedSeats.map(s => s.id);
+        unlockSeats(showtime.id, seatIds).catch(console.error);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('unload', handleUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('unload', handleUnload);
+      
+      // Cleanup: unlock seats if payment not completed
+      if (!paymentCompleted && selectedSeats.length > 0 && showtime) {
+        const seatIds = selectedSeats.map(s => s.id);
+        unlockSeats(showtime.id, seatIds).catch(console.error);
+      }
+    };
+  }, [paymentCompleted, selectedSeats, showtime]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
@@ -223,6 +257,11 @@ export default function PaymentPage() {
       }
 
       // Navigate to success page or my tickets
+      setPaymentCompleted(true);
+      
+      // Clear stored seats since payment was successful
+      sessionStorage.removeItem(`selectedSeats_${showtime.id}`);
+      
       navigate('/my-tickets', { 
         state: { 
           success: true, 

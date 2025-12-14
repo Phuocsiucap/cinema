@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from app import schemas, database, crud_revenue
 from typing import Optional
-from datetime import date
+from datetime import date, datetime, timedelta
 
 router = APIRouter()
 
@@ -30,3 +30,18 @@ async def get_revenue_comparison(
     
     data = await crud_revenue.get_revenue_comparison(db, params)
     return data
+
+@router.get("/detail/{entity_type}/{entity_id}", response_model=schemas.RevenueDetailResponse)
+async def get_revenue_detail_endpoint(
+    entity_type: str,
+    entity_id: str,
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
+    db: AsyncSession = Depends(database.get_db)  
+):
+    """Get detailed revenue stats for a specific entity over time"""
+    # Defaults handled in logic if None, but good to ensure valid dates
+    actual_end_date = end_date or datetime.utcnow()
+    actual_start_date = start_date or (actual_end_date - timedelta(days=30))
+    
+    return await crud_revenue.get_revenue_detail(db, entity_type, entity_id, actual_start_date, actual_end_date)

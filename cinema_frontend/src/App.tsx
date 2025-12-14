@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { EmailVerification } from './components/EmailVerification';
-import { HomePage, MovieDetailPage, LoginPage, RegisterPage, AuthCallbackPage, ForgotPasswordPage, ResetPasswordPage, MovieBookingPage, SeatSelectionPage, PaymentPage, MyTicketsPage, AboutPage, PoliciesPage, ContactPage, UploadTestPage } from './pages';
+import { HomePage, MovieDetailPage, LoginPage, RegisterPage, AuthCallbackPage, ForgotPasswordPage, ResetPasswordPage, MovieBookingPage, SeatSelectionPage, PaymentPage, MyTicketsPage, AboutPage, PoliciesPage, ContactPage} from './pages';
 import { PromotionsPage } from './pages';
 import { AdminDashboardPage, AddMoviePage, MoviesPage as AdminMoviesPage, EditMoviePage, AddCinemaPage, CinemasPage as AdminCinemasPage, AddRoomsPage, EditCinemaPage, EditRoomPage, UsersPage, EditUserPage, ShowtimesPage, ManageTicketsPage, PromotionsPage as AdminPromotionsPage, AddPromotionPage, EditPromotionPage, RevenuePage } from './pages/admin';
 import { MoviesPage as PublicMoviesPage, CinemasPage as PublicCinemasPage } from './pages';
@@ -21,7 +21,6 @@ function App() {
             <Route path="/about" element={<AboutPage />} />
             <Route path="/policies" element={<PoliciesPage />} />
             <Route path="/contact" element={<ContactPage />} />
-            <Route path="/upload-test" element={<UploadTestPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />

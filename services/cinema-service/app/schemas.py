@@ -389,3 +389,20 @@ class RevenueComparisonResponse(BaseModel):
     end_date: date
     total_entities: int
     data: List[ComparisonItem]
+
+
+# Detailed revenue item for a specific day
+class RevenueDetailItem(BaseModel):
+    date: date
+    revenue: float
+    tickets_sold: int
+
+
+# Detailed revenue response for a single entity (cinema/room/movie)
+class RevenueDetailResponse(BaseModel):
+    entity_id: str
+    entity_name: str
+    period_type: str
+    total_revenue: float
+    total_tickets: int
+    data: List[RevenueDetailItem]

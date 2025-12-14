@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Film, 
-  CalendarDays, 
-  Users, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Film,
+  CalendarDays,
+  Users,
+  Settings,
   LogOut,
   ChevronLeft,
   Menu,
@@ -45,17 +45,18 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] flex">
+    <div className="flex h-screen bg-[#0f0f0f] overflow-hidden">
       {/* Sidebar */}
-      <aside 
+      <aside
         className={`
           ${sidebarOpen ? 'w-64' : 'w-20'} 
           bg-[#1a1a1a] border-r border-gray-800 
           transition-all duration-300 flex flex-col
+          shrink-0
         `}
       >
         {/* Logo */}
-        <div className="p-4 border-b border-gray-800 flex items-center gap-3">
+        <div className="p-4 border-b border-gray-800 flex items-center gap-3 shrink-0">
           <div className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center">
             <Film size={20} className="text-white" />
           </div>
@@ -68,18 +69,18 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         </div>
 
         {/* Menu Items */}
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto custom-scrollbar">
           {menuItems.map((item) => {
-            const isActive = location.pathname === item.path || 
-                           (item.path !== '/admin' && location.pathname.startsWith(item.path));
+            const isActive = location.pathname === item.path ||
+              (item.path !== '/admin' && location.pathname.startsWith(item.path));
             return (
               <Link
                 key={item.path}
                 to={item.path}
                 className={`
                   flex items-center gap-3 px-4 py-3 rounded-lg transition-all
-                  ${isActive 
-                    ? 'bg-red-600 text-white' 
+                  ${isActive
+                    ? 'bg-red-600 text-white'
                     : 'text-gray-400 hover:bg-gray-800 hover:text-white'
                   }
                 `}
@@ -92,7 +93,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         </nav>
 
         {/* Logout */}
-        <div className="p-4 border-t border-gray-800">
+        <div className="p-4 border-t border-gray-800 shrink-0">
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-all w-full"
@@ -105,7 +106,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         {/* Toggle Button */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="absolute top-6 -right-3 w-6 h-6 bg-gray-800 border border-gray-700 rounded-full flex items-center justify-center text-gray-400 hover:text-white"
+          className="absolute top-6 -right-3 w-6 h-6 bg-gray-800 border border-gray-700 rounded-full flex items-center justify-center text-gray-400 hover:text-white z-10"
           style={{ left: sidebarOpen ? '248px' : '68px' }}
         >
           {sidebarOpen ? <ChevronLeft size={14} /> : <Menu size={14} />}
@@ -113,7 +114,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-y-auto">
         {children}
       </main>
     </div>

@@ -106,16 +106,18 @@ export function CinemasPage() {
     setSelectedCinema(cinema);
     setIsLoadingShowtimes(true);
     try {
-      const data = await showtimeService.getShowtimesByCinema(cinema.id);
+      const data = await showtimeService.getUpcomingShowtimesByCinema(cinema.id);
       setShowtimes(data);
       
-      // Set default selected date to today or first available date
+      // Set default selected date to today if available, otherwise first available date
       const today = new Date().toISOString().split('T')[0];
       const availableDates = getAvailableDates(data);
       if (availableDates.includes(today)) {
         setSelectedDate(today);
       } else if (availableDates.length > 0) {
         setSelectedDate(availableDates[0]);
+      } else {
+        setSelectedDate(''); // No available dates
       }
     } catch (err) {
       console.error('Failed to load showtimes:', err);
@@ -177,9 +179,10 @@ export function CinemasPage() {
     }
   };
 
-  // Get unique dates from showtimes
+  // Get unique dates from showtimes (from today onwards)
   const getAvailableDates = (showtimeList: Showtime[]): string[] => {
-    const dates = showtimeList.map(st => new Date(st.start_time).toISOString().split('T')[0]);
+    const dates = showtimeList
+      .map(st => new Date(st.start_time).toISOString().split('T')[0]); // API already filters for future showtimes
     return [...new Set(dates)].sort();
   };
 
@@ -187,7 +190,7 @@ export function CinemasPage() {
   const getShowtimesByMovie = (): GroupedShowtimes[string] => {
     const filtered = showtimes.filter(st => {
       const stDate = new Date(st.start_time).toISOString().split('T')[0];
-      return stDate === selectedDate;
+      return stDate === selectedDate; // API already filters for future showtimes
     });
 
     const grouped: GroupedShowtimes[string] = {};
@@ -500,30 +503,49 @@ export function CinemasPage() {
 
                       {/* Timeline Showtimes */}
                       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
-                        {movieShowtimes.map((showtime) => (
-                          <button
-                            key={showtime.id}
-                            onClick={() => navigate(`/booking/seats/${showtime.id}`)}
-                            className="group relative bg-gray-700 hover:bg-red-600 rounded-lg p-3 transition-all text-center"
-                          >
-                            <div className="text-lg font-bold text-white">
-                              {formatTime(showtime.start_time)}
-                            </div>
-                            <div className="text-xs text-gray-400 group-hover:text-gray-200 mt-1">
-                              {showtime.room?.name}
-                            </div>
-                            <div className="text-xs text-red-400 group-hover:text-white mt-1 font-medium">
-                              {formatPrice(showtime.price)}
-                            </div>
-                            {/* Hover tooltip */}
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 rounded-lg text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-lg border border-gray-700">
-                              <div className="flex items-center gap-1">
-                                <Ticket size={12} />
-                                <span>Book Now</span>
+                        {movieShowtimes.map((showtime) => {
+                          const isPast = new Date(showtime.start_time) < new Date();
+                          
+                          const handleShowtimeClick = () => {
+                            if (isPast) {
+                              alert(`This showtime has already started at ${formatTime(showtime.start_time)}. Please select a future showtime.`);
+                              return;
+                            }
+                            navigate(`/booking/seats/${showtime.id}`);
+                          };
+                          
+                          return (
+                            <button
+                              key={showtime.id}
+                              onClick={handleShowtimeClick}
+                              disabled={isPast}
+                              className={`group relative rounded-lg p-3 transition-all text-center ${
+                                isPast
+                                  ? 'bg-gray-800 text-gray-600 cursor-not-allowed opacity-50'
+                                  : 'bg-gray-700 hover:bg-red-600'
+                              }`}
+                            >
+                              <div className={`text-lg font-bold ${isPast ? 'text-gray-600' : 'text-white'}`}>
+                                {formatTime(showtime.start_time)}
                               </div>
-                            </div>
-                          </button>
-                        ))}
+                              <div className={`text-xs mt-1 ${isPast ? 'text-gray-600' : 'text-gray-400 group-hover:text-gray-200'}`}>
+                                {showtime.room?.name}
+                              </div>
+                              <div className={`text-xs mt-1 font-medium ${isPast ? 'text-gray-600' : 'text-red-400 group-hover:text-white'}`}>
+                                {formatPrice(showtime.price)}
+                              </div>
+                              {/* Hover tooltip */}
+                              {!isPast && (
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 rounded-lg text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-lg border border-gray-700">
+                                  <div className="flex items-center gap-1">
+                                    <Ticket size={12} />
+                                    <span>Book Now</span>
+                                  </div>
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   ))}

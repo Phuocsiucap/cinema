@@ -101,6 +101,26 @@ async def get_showtimes_by_movie(db: AsyncSession, movie_id: str) -> List[Showti
     )
     return result.scalars().all()
 
+async def get_upcoming_showtimes_by_movie(db: AsyncSession, movie_id: str) -> List[Showtime]:
+    """Get showtimes for a movie in the next month from now"""
+    now = datetime.now(VN_TIMEZONE).replace(tzinfo=None)
+    one_month_later = now + timedelta(days=30)
+    
+    result = await db.execute(
+        select(Showtime)
+        .filter(
+            Showtime.movie_id == movie_id,
+            Showtime.start_time >= now,
+            Showtime.start_time <= one_month_later
+        )
+        .options(
+            selectinload(Showtime.movie),
+            selectinload(Showtime.room).selectinload(CinemaRoom.cinema)
+        )
+        .order_by(Showtime.start_time)
+    )
+    return result.scalars().all()
+
 async def get_showtimes_by_room(db: AsyncSession, room_id: str, start_date: Optional[str] = None, end_date: Optional[str] = None) -> List[Showtime]:
     query = select(Showtime).filter(Showtime.room_id == room_id)
     
@@ -216,5 +236,27 @@ async def get_showtimes_by_cinema(db: AsyncSession, cinema_id: str) -> List[Show
             selectinload(Showtime.movie),
             selectinload(Showtime.room).selectinload(CinemaRoom.cinema)
         )
+    )
+    return result.scalars().all()
+
+async def get_upcoming_showtimes_by_cinema(db: AsyncSession, cinema_id: str) -> List[ShowtimeResponse]:
+    """Get showtimes for a cinema in the next month from now"""
+    now = datetime.now(VN_TIMEZONE).replace(tzinfo=None)
+    one_month_later = now + timedelta(days=30)
+    
+    result = await db.execute(
+        select(Showtime)
+        .join(CinemaRoom, Showtime.room_id == CinemaRoom.id)
+        .join(Cinema, CinemaRoom.cinema_id == Cinema.id)
+        .filter(
+            Cinema.id == cinema_id,
+            Showtime.start_time >= now,
+            Showtime.start_time <= one_month_later
+        )
+        .options(
+            selectinload(Showtime.movie),
+            selectinload(Showtime.room).selectinload(CinemaRoom.cinema)
+        )
+        .order_by(Showtime.start_time)
     )
     return result.scalars().all()

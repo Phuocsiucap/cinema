@@ -53,14 +53,24 @@ export const showtimeService = {
     return api.post<Showtime>(`${SHOWTIME_API}/`, data);
   },
 
-  // Lấy showtimes theo movie
+  // Lấy showtimes theo movie (cho admin - tất cả thời gian)
   getShowtimesByMovie: async (movieId: string): Promise<Showtime[]> => {
     return api.get<Showtime[]>(`${SHOWTIME_API}/movie/${movieId}`);
   },
 
-  // Lấy showtimes theo cinema
+  // Lấy upcoming showtimes theo movie (cho user - trong 1 tháng tới)
+  getUpcomingShowtimesByMovie: async (movieId: string): Promise<Showtime[]> => {
+    return api.get<Showtime[]>(`${SHOWTIME_API}/movie/${movieId}/upcoming`);
+  },
+
+  // Lấy showtimes theo cinema (cho admin - tất cả thời gian)
   getShowtimesByCinema: async (cinemaId: string): Promise<Showtime[]> => {
     return api.get<Showtime[]>(`${SHOWTIME_API}/cinema/${cinemaId}`);
+  },
+
+  // Lấy upcoming showtimes theo cinema (cho user - trong 1 tháng tới)
+  getUpcomingShowtimesByCinema: async (cinemaId: string): Promise<Showtime[]> => {
+    return api.get<Showtime[]>(`${SHOWTIME_API}/cinema/${cinemaId}/upcoming`);
   },
 
   // Lấy showtimes theo room

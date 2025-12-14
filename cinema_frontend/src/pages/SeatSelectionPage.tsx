@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { MainLayout } from '../components/layouts';
 import { showtimeService, type Showtime } from '../services/showtimeService';
-import { bookingService, type SeatUpdateEvent, type LockedSeat } from '../services/bookingService';
+import { bookingService, type SeatUpdateEvent, type LockedSeat, unlockSeats } from '../services/bookingService';
 import { useAuth } from '../contexts/AuthContext';
 import type { Seat, SeatWithStatus as BaseSeatWithStatus } from '../types/cinema';
 
@@ -15,6 +15,7 @@ interface SeatWithStatus extends Seat {
 export default function SeatSelectionPage() {
   const { showtimeId } = useParams<{ showtimeId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   
   // Generate a unique user ID for this session if not logged in
@@ -33,6 +34,31 @@ export default function SeatSelectionPage() {
   
   // Loading states
   const [isLoading, setIsLoading] = useState(true);
+
+  // Check if user returned from payment page without completing payment
+  useEffect(() => {
+    // Check if user came from payment page
+    const referrer = document.referrer;
+    const isFromPayment = referrer.includes('/booking/payment') || referrer.includes('payment');
+    const storedSeats = sessionStorage.getItem(`selectedSeats_${showtimeId}`);
+    
+    if ((isFromPayment || storedSeats) && showtimeId) {
+      // User returned from payment page - unlock any seats that were stored
+      if (storedSeats) {
+        try {
+          const seatIds = JSON.parse(storedSeats);
+          if (seatIds.length > 0) {
+            console.log('Unlocking seats from previous session:', seatIds);
+            unlockSeats(showtimeId, seatIds).catch(console.error);
+          }
+        } catch (error) {
+          console.error('Error parsing stored seats:', error);
+        }
+        // Clear the stored seats
+        sessionStorage.removeItem(`selectedSeats_${showtimeId}`);
+      }
+    }
+  }, [showtimeId]);
 
   // Handle socket events
   useEffect(() => {
@@ -353,6 +379,9 @@ export default function SeatSelectionPage() {
             totalPrice,
           }
         });
+        
+        // Store selected seats in sessionStorage as backup for unlock on return
+        sessionStorage.setItem(`selectedSeats_${showtimeId}`, JSON.stringify(seatIds));
       } else {
         alert(result.message || 'Some seats have been selected by others. Please choose different seats.');
         // Remove failed seats from selection

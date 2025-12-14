@@ -109,8 +109,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const token = response.access_token;
       authService.setToken(token);
       const user = response.user;
-      // const user = await authService.getInfoUserByToken();
-      if (user){
+      
+      if (user) {
+        // Check if user account is active
+        if (!user.is_active) {
+          dispatch({ type: 'AUTH_FAILURE', payload: 'Your account has been deactivated. Please contact administrator.' });
+          authService.removeToken();
+          throw new Error('Your account has been deactivated. Please contact administrator.');
+        }
+        
         dispatch({ type: 'AUTH_SUCCESS', payload: { user, token } });
       } 
       
@@ -157,7 +164,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const user = response.user;
       authService.setToken(jwtToken);
       
-      if (user){
+      if (user) {
+        // Check if user account is active
+        if (!user.is_active) {
+          dispatch({ type: 'AUTH_FAILURE', payload: 'Your account has been deactivated. Please contact administrator.' });
+          authService.removeToken();
+          throw new Error('Your account has been deactivated. Please contact administrator.');
+        }
+        
         dispatch({ type: 'AUTH_SUCCESS', payload: { user, token: jwtToken } });
       } 
       
@@ -211,6 +225,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     authService.setToken(token);
     const user = await authService.getInfoUserByToken();
     if (user) {
+      // Check if user account is active
+      if (!user.is_active) {
+        dispatch({ type: 'AUTH_FAILURE', payload: 'Your account has been deactivated. Please contact administrator.' });
+        authService.removeToken();
+        throw new Error('Your account has been deactivated. Please contact administrator.');
+      }
+      
       dispatch({ type: 'AUTH_SUCCESS', payload: { user, token } });
     }
   };
@@ -221,6 +242,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (token) {
         const user = await authService.getInfoUserByToken();
         if (user) {
+          // Check if user account is active
+          if (!user.is_active) {
+            dispatch({ type: 'AUTH_FAILURE', payload: 'Your account has been deactivated. Please contact administrator.' });
+            authService.removeToken();
+            return;
+          }
+          
           dispatch({ type: 'AUTH_SUCCESS', payload: { user, token } });
         }
       }

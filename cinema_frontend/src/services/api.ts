@@ -21,7 +21,7 @@ class ApiService {
     const { method = 'GET', body, headers = {} } = options;
 
     const token = this.getToken();
-    
+
     const config: RequestInit = {
       method,
       headers: {

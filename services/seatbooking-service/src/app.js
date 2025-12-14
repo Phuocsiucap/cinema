@@ -14,6 +14,7 @@ import {
     getUserBookings,
     getBookedSeats,
     checkinBooking,
+    checkinSeatBooking,
     getTickets,
     setIO as setBookingIO 
 } from "./booking.controller.js";
@@ -53,6 +54,8 @@ setBookingIO(io);
 // ==================== SEAT ROUTES ====================
 app.post("/lock-seat", lockSeat);
 app.post("/unlock-seat", unlockSeat);
+
+// ==================== PROMOTION ROUTES ====================
 app.get("/promotions/active", getActivePromotions);
 app.post("/promotions/validate", validatePromotionCode);
 app.get("/promotions", getPromotions);
@@ -61,7 +64,7 @@ app.get("/promotions/:id", getPromotion);
 app.put("/promotions/:id", updatePromotion);
 app.delete("/promotions/:id", deletePromotion);
 
-
+// ==================== BOOKING ROUTES ====================
 // Tạo booking mới (sau khi đã lock ghế)
 app.post("/", createBooking);
 
@@ -74,6 +77,13 @@ app.post("/:bookingId/cancel", cancelBooking);
 // Lấy danh sách ghế đã đặt cho showtime
 app.get("/showtimes/:showtimeId/booked-seats", getBookedSeats);
 
+// Check-in ghế (QR code hoặc seatbookingId trực tiếp)
+app.post("/seats/checkin", checkinSeatBooking);
+
+// Check-in toàn bộ booking (admin)
+app.post("/:bookingId/checkin", checkinBooking);
+
+
 // ==================== TICKET ROUTES (Admin) ====================
 // Lấy danh sách tickets với phân trang
 app.get("/tickets", getTickets);
@@ -83,9 +93,6 @@ app.get("/", getUserBookings);
 
 // Lấy thông tin booking theo ID    
 app.get("/:bookingId", getBooking);
-
-// Check-in vé (quét QR)
-app.post("/:bookingId/checkin", checkinBooking);
 
 
 // ==================== EMAIL ROUTES ====================

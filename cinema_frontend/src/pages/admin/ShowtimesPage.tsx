@@ -30,7 +30,7 @@ interface Cinema {
   rooms: { id: string; name: string }[];
 }
 
-type ViewMode = 'movie' | 'room';
+type ViewMode = 'movie' | 'cinema' | 'room';
 
 export function ShowtimesPage() {
   const [searchParams] = useSearchParams();
@@ -54,6 +54,7 @@ export function ShowtimesPage() {
   // Selected filters
   const [selectedCinemaId, setSelectedCinemaId] = useState<string>('');
   const [selectedRoomId, setSelectedRoomId] = useState<string>('');
+  const [showAllRooms, setShowAllRooms] = useState(false);
   
   // Week navigation for room view
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() => {
@@ -78,6 +79,10 @@ export function ShowtimesPage() {
   });
   const [selectedShowtime, setSelectedShowtime] = useState<Showtime | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Today view state
+  const [showTodayView, setShowTodayView] = useState(false);
+  const [todayShowtimes, setTodayShowtimes] = useState<Showtime[]>([]);
   
   const [error, setError] = useState<string | null>(null);
 
@@ -151,6 +156,20 @@ export function ShowtimesPage() {
       if (viewMode === 'movie' && selectedMovie) {
         const data = await showtimeService.getShowtimesByMovie(selectedMovie.id);
         setShowtimes(data);
+      } else if (viewMode === 'cinema' && selectedCinemaId) {
+        if (showAllRooms) {
+          // Get all showtimes for the cinema
+          const data = await showtimeService.getShowtimesByCinema(selectedCinemaId);
+          setShowtimes(data);
+        } else if (selectedRoomId) {
+          // Get showtimes for specific room in the cinema
+          const startDate = currentWeekStart.toISOString().split('T')[0];
+          const endDate = new Date(currentWeekStart.getTime() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+          const data = await showtimeService.getShowtimesByRoom(selectedRoomId, startDate, endDate);
+          setShowtimes(data);
+        } else {
+          setShowtimes([]);
+        }
       } else if (viewMode === 'room' && selectedRoomId) {
         const startDate = currentWeekStart.toISOString().split('T')[0];
         const endDate = new Date(currentWeekStart.getTime() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
@@ -164,10 +183,12 @@ export function ShowtimesPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [viewMode, selectedMovie, selectedRoomId, currentWeekStart]);
+  }, [viewMode, selectedMovie, selectedCinemaId, selectedRoomId, showAllRooms, currentWeekStart]);
 
   useEffect(() => {
-    if ((viewMode === 'movie' && selectedMovie) || (viewMode === 'room' && selectedRoomId)) {
+    if ((viewMode === 'movie' && selectedMovie) || 
+        (viewMode === 'cinema' && (selectedCinemaId && (showAllRooms || selectedRoomId))) ||
+        (viewMode === 'room' && selectedRoomId)) {
       fetchShowtimes();
     }
   }, [fetchShowtimes]);
@@ -218,6 +239,42 @@ export function ShowtimesPage() {
     }
   };
 
+  // Load today's showtimes
+  const loadTodayShowtimes = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Get all cinemas and their showtimes for today
+      const allShowtimes: Showtime[] = [];
+      for (const cinema of cinemas) {
+        const cinemaShowtimes = await showtimeService.getShowtimesByCinema(cinema.id);
+        // Filter showtimes for today
+        const today = new Date().toISOString().split('T')[0];
+        const todayCinemaShowtimes = cinemaShowtimes.filter(st => 
+          new Date(st.start_time).toISOString().split('T')[0] === today
+        );
+        allShowtimes.push(...todayCinemaShowtimes);
+      }
+      
+      // Sort by start time (newest first)
+      allShowtimes.sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime());
+      
+      setTodayShowtimes(allShowtimes);
+      setShowTodayView(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load today\'s showtimes');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Back to normal view
+  const backToNormalView = () => {
+    setShowTodayView(false);
+    setTodayShowtimes([]);
+  };
+
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('vi-VN', {
       weekday: 'short',
@@ -261,17 +318,31 @@ export function ShowtimesPage() {
               <h1 className="text-3xl font-bold text-white">Manage Showtimes</h1>
               <p className="text-gray-400 mt-1">Schedule, edit, and view movie showtimes for all cinemas.</p>
             </div>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-            >
-              <Plus size={18} />
-              Add New Showtime
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={showTodayView ? backToNormalView : loadTodayShowtimes}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                  showTodayView 
+                    ? 'bg-green-600 hover:bg-green-700 text-white'
+                    : 'bg-gray-600 hover:bg-gray-700 text-white'
+                }`}
+              >
+                <Calendar size={18} />
+                {showTodayView ? 'Back to Filters' : 'Show Today'}
+              </button>
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+              >
+                <Plus size={18} />
+                Add New Showtime
+              </button>
+            </div>
           </div>
 
-          {/* View Mode Tabs */}
-          <div className="flex gap-2 mb-6">
+          {/* View Mode Tabs - hide when in today view */}
+          {!showTodayView && (
+            <div className="flex gap-2 mb-6">
             <button
               onClick={() => setViewMode('movie')}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
@@ -284,6 +355,17 @@ export function ShowtimesPage() {
               By Movie
             </button>
             <button
+              onClick={() => setViewMode('cinema')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                viewMode === 'cinema'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white/5 text-gray-400 hover:bg-white/10'
+              }`}
+            >
+              <Building2 size={16} className="inline mr-2" />
+              By Cinema
+            </button>
+            <button
               onClick={() => setViewMode('room')}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 viewMode === 'room'
@@ -291,13 +373,14 @@ export function ShowtimesPage() {
                   : 'bg-white/5 text-gray-400 hover:bg-white/10'
               }`}
             >
-              <Building2 size={16} className="inline mr-2" />
+              <Calendar size={16} className="inline mr-2" />
               By Room (Calendar)
             </button>
           </div>
+          )}
 
-          {/* Filters - only show when in room view or no movie selected */}
-          {(viewMode === 'room' || (viewMode === 'movie' && !selectedMovie)) && (
+          {/* Filters - only show when not in today view and in room/cinema view or no movie selected */}
+          {!showTodayView && (viewMode === 'room' || viewMode === 'cinema' || (viewMode === 'movie' && !selectedMovie)) && (
             <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
               {viewMode === 'movie' ? (
                 <div className="space-y-4">
@@ -325,6 +408,59 @@ export function ShowtimesPage() {
                           </button>
                         )}
                       </div>
+                    </div>
+                  </div>
+                </div>
+              ) : viewMode === 'cinema' ? (
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <label className="text-gray-400 text-sm">Cinema:</label>
+                    <select
+                      value={selectedCinemaId}
+                      onChange={(e) => {
+                        setSelectedCinemaId(e.target.value);
+                        setShowAllRooms(false); // Reset when changing cinema
+                      }}
+                      disabled={isLoadingCinemas}
+                      className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Select Cinema</option>
+                      {cinemas.map((cinema) => (
+                        <option key={cinema.id} value={cinema.id}>
+                          {cinema.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-gray-400 text-sm">Rooms:</label>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setShowAllRooms(true)}
+                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          showAllRooms
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        }`}
+                      >
+                        All Rooms
+                      </button>
+                      <select
+                        value={showAllRooms ? '' : selectedRoomId}
+                        onChange={(e) => {
+                          setSelectedRoomId(e.target.value);
+                          setShowAllRooms(false);
+                        }}
+                        disabled={showAllRooms}
+                        className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                      >
+                        <option value="">Select Room</option>
+                        {selectedCinema?.rooms?.map((room) => (
+                          <option key={room.id} value={room.id}>
+                            {room.name}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 </div>
@@ -376,6 +512,95 @@ export function ShowtimesPage() {
             <div className="flex items-center justify-center h-64">
               <Loader2 className="animate-spin text-blue-500" size={48} />
             </div>
+          ) : showTodayView ? (
+            // Today View - Show all today's showtimes
+            <>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-white">
+                  Today's Showtimes - {new Date().toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                </h3>
+                <div className="text-sm text-gray-400">
+                  {todayShowtimes.length} showtime{todayShowtimes.length !== 1 ? 's' : ''} today
+                </div>
+              </div>
+              
+              {todayShowtimes.length === 0 ? (
+                <div className="text-center py-16 text-gray-400">
+                  <Calendar size={48} className="mx-auto mb-4 opacity-50" />
+                  <p className="text-lg">No showtimes scheduled for today</p>
+                  <p className="text-sm mt-2">All cinemas are closed or no movies are showing today.</p>
+                </div>
+              ) : (
+                <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-gray-800/50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Movie</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Cinema</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Room</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Time</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Price</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-700">
+                      {todayShowtimes.map((showtime) => (
+                        <tr key={showtime.id} className="hover:bg-white/5 transition-colors">
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-3">
+                              {showtime.movie?.poster_url ? (
+                                <img
+                                  src={showtime.movie.poster_url}
+                                  alt={showtime.movie.title}
+                                  className="w-10 h-14 object-cover rounded"
+                                />
+                              ) : (
+                                <div className="w-10 h-14 bg-gray-700 rounded flex items-center justify-center">
+                                  <Film size={16} className="text-gray-500" />
+                                </div>
+                              )}
+                              <div>
+                                <div className="text-sm font-medium text-white">{showtime.movie?.title}</div>
+                                <div className="text-xs text-gray-400">{showtime.movie?.duration_minutes} min</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 text-sm text-gray-300">
+                            {showtime.room?.cinema?.name}
+                          </td>
+                          <td className="px-4 py-4 text-sm text-gray-300">
+                            {showtime.room?.name}
+                          </td>
+                          <td className="px-4 py-4 text-sm text-gray-300">
+                            {new Date(showtime.start_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                          </td>
+                          <td className="px-4 py-4 text-sm text-gray-300">
+                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(showtime.price)}
+                          </td>
+                          <td className="px-4 py-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => setSelectedShowtime(showtime)}
+                                className="p-1.5 text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 rounded transition-colors"
+                                title="Edit"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                              <button
+                                onClick={() => setDeleteModal({ isOpen: true, showtime })}
+                                className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
           ) : viewMode === 'movie' ? (
             // Movie View - List
             <>
@@ -513,26 +738,159 @@ export function ShowtimesPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {showtimes.map((showtime) => (
-                            <tr key={showtime.id} className="border-t border-white/10 hover:bg-white/5">
-                              <td className="px-4 py-3 text-white">
-                                {showtime.room?.cinema?.name || '-'}
+                          {(() => {
+                            const now = new Date();
+                            const futureShowtimes = showtimes
+                              .filter(st => new Date(st.start_time) >= now)
+                              .sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime()); // Future: newest first
+                            const pastShowtimes = showtimes
+                              .filter(st => new Date(st.start_time) < now)
+                              .sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime()); // Past: newest first
+
+                            const renderShowtimeRow = (showtime: any, isPast: boolean = false) => (
+                              <tr key={showtime.id} className={`border-t border-white/10 hover:bg-white/5 ${isPast ? 'opacity-60' : ''}`}>
+                                <td className="px-4 py-3 text-white">
+                                  {showtime.room?.cinema?.name || '-'}
+                                </td>
+                                <td className="px-4 py-3 text-gray-300">
+                                  {showtime.room?.name || '-'}
+                                </td>
+                                <td className="px-4 py-3 text-gray-300">
+                                  {formatDate(showtime.start_time)}
+                                </td>
+                                <td className="px-4 py-3 text-white font-medium">
+                                  {formatTime(showtime.start_time)} - {formatTime(showtime.end_time)}
+                                </td>
+                                <td className="px-4 py-3 text-green-400">
+                                  {formatPrice(showtime.price)}
+                                </td>
+                                <td className="px-4 py-3">
+                                  <div className="flex items-center gap-2">
+                                    <button className="p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded transition-colors">
+                                      <Edit2 size={16} />
+                                    </button>
+                                    <button
+                                      onClick={() => setDeleteModal({ isOpen: true, showtime })}
+                                      className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                                    >
+                                      <Trash2 size={16} />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+
+                            return (
+                              <>
+                                {futureShowtimes.map(showtime => renderShowtimeRow(showtime, false))}
+                                {futureShowtimes.length > 0 && pastShowtimes.length > 0 && (
+                                  <tr>
+                                    <td colSpan={6} className="px-4 py-2 text-center text-gray-500 text-sm border-t-2 border-gray-600">
+                                      ──────────────────────────────────────────────────────────────────────────────────────────────
+                                    </td>
+                                  </tr>
+                                )}
+                                {pastShowtimes.map(showtime => renderShowtimeRow(showtime, true))}
+                              </>
+                            );
+                          })()}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          ) : viewMode === 'cinema' ? (
+            // Cinema View - List by Cinema
+            <>
+              {!selectedCinemaId ? (
+                <div className="text-center py-16 text-gray-400">
+                  <Building2 size={48} className="mx-auto mb-4 opacity-50" />
+                  <p className="text-lg">Select a cinema to view its showtimes</p>
+                  <p className="text-sm mt-2">Choose "All Rooms" to see all showtimes or select a specific room</p>
+                </div>
+              ) : showtimes.length === 0 ? (
+                <div className="text-center py-16 text-gray-400">
+                  <Calendar size={48} className="mx-auto mb-4 opacity-50" />
+                  <p className="text-lg">No showtimes found</p>
+                  <p className="text-sm mt-2">
+                    {showAllRooms 
+                      ? `No showtimes found for ${selectedCinema?.name} (all rooms)`
+                      : `No showtimes found for ${selectedCinema?.rooms?.find(r => r.id === selectedRoomId)?.name || 'selected room'}`
+                    }
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-bold text-white">
+                      {showAllRooms ? 'All Showtimes' : 'Room Showtimes'} - {selectedCinema?.name}
+                    </h3>
+                    <div className="text-sm text-gray-400">
+                      {showtimes.length} showtime{showtimes.length !== 1 ? 's' : ''} found
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+                    <table className="w-full">
+                      <thead className="bg-gray-800/50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Movie</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Room</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Date & Time</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Price</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-700">
+                        {(() => {
+                          const now = new Date();
+                          const futureShowtimes = showtimes
+                            .filter(st => new Date(st.start_time) >= now)
+                            .sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime());
+                          const pastShowtimes = showtimes
+                            .filter(st => new Date(st.start_time) < now)
+                            .sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime());
+
+                          const renderShowtimeRow = (showtime: any, isPast: boolean = false) => (
+                            <tr key={showtime.id} className={`hover:bg-white/5 transition-colors ${isPast ? 'opacity-60' : ''}`}>
+                              <td className="px-4 py-4">
+                                <div className="flex items-center gap-3">
+                                  {showtime.movie?.poster_url ? (
+                                    <img
+                                      src={showtime.movie.poster_url}
+                                      alt={showtime.movie.title}
+                                      className="w-10 h-14 object-cover rounded"
+                                    />
+                                  ) : (
+                                    <div className="w-10 h-14 bg-gray-700 rounded flex items-center justify-center">
+                                      <Film size={16} className="text-gray-500" />
+                                    </div>
+                                  )}
+                                  <div>
+                                    <div className="text-sm font-medium text-white">{showtime.movie?.title}</div>
+                                    <div className="text-xs text-gray-400">{showtime.movie?.duration_minutes} min</div>
+                                  </div>
+                                </div>
                               </td>
-                              <td className="px-4 py-3 text-gray-300">
-                                {showtime.room?.name || '-'}
+                              <td className="px-4 py-4 text-sm text-gray-300">
+                                {showtime.room?.name}
                               </td>
-                              <td className="px-4 py-3 text-gray-300">
-                                {formatDate(showtime.start_time)}
+                              <td className="px-4 py-4 text-sm text-gray-300">
+                                <div>{new Date(showtime.start_time).toLocaleDateString('vi-VN')}</div>
+                                <div className="text-gray-500">{new Date(showtime.start_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</div>
                               </td>
-                              <td className="px-4 py-3 text-white font-medium">
-                                {formatTime(showtime.start_time)} - {formatTime(showtime.end_time)}
+                              <td className="px-4 py-4 text-sm text-gray-300">
+                                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(showtime.price)}
                               </td>
-                              <td className="px-4 py-3 text-green-400">
-                                {formatPrice(showtime.price)}
-                              </td>
-                              <td className="px-4 py-3">
-                                <div className="flex items-center gap-2">
-                                  <button className="p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded transition-colors">
+                              <td className="px-4 py-4 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  <button
+                                    onClick={() => setSelectedShowtime(showtime)}
+                                    className="p-1.5 text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 rounded transition-colors"
+                                    title="Edit"
+                                  >
                                     <Edit2 size={16} />
                                   </button>
                                   <button
@@ -544,12 +902,26 @@ export function ShowtimesPage() {
                                 </div>
                               </td>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </>
+                          );
+
+                          return (
+                            <>
+                              {futureShowtimes.map(showtime => renderShowtimeRow(showtime, false))}
+                              {futureShowtimes.length > 0 && pastShowtimes.length > 0 && (
+                                <tr>
+                                  <td colSpan={5} className="px-4 py-2 text-center text-gray-500 text-sm border-t-2 border-gray-600">
+                                    ──────────────────────────────────────────────────────────────────────────────────────────────
+                                  </td>
+                                </tr>
+                              )}
+                              {pastShowtimes.map(showtime => renderShowtimeRow(showtime, true))}
+                            </>
+                          );
+                        })()}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               )}
             </>
           ) : (
@@ -599,10 +971,12 @@ export function ShowtimesPage() {
                 </div>
                 <div className="grid grid-cols-7 min-h-[300px]">
                   {getWeekDays().map((day, idx) => {
-                    const dayShowtimes = showtimes.filter(s => {
-                      const showDate = new Date(s.start_time);
-                      return showDate.toDateString() === day.toDateString();
-                    });
+                    const dayShowtimes = showtimes
+                      .filter(s => {
+                        const showDate = new Date(s.start_time);
+                        return showDate.toDateString() === day.toDateString();
+                      })
+                      .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
                     return (
                       <div key={idx} className="border-r border-white/10 last:border-r-0 p-2 space-y-2">
                         {dayShowtimes.map((showtime) => (
@@ -632,6 +1006,7 @@ export function ShowtimesPage() {
         <AddShowtimeModal
           cinemas={cinemas}
           defaultMovie={viewMode === 'movie' ? selectedMovie : null}
+          defaultCinema={viewMode === 'cinema' ? selectedCinema : null}
           defaultRoomId={viewMode === 'room' ? selectedRoomId : ''}
           onClose={() => setShowAddModal(false)}
           onSuccess={() => {
@@ -763,19 +1138,20 @@ export function ShowtimesPage() {
 interface AddShowtimeModalProps {
   cinemas: Cinema[];
   defaultMovie?: Movie | null;
+  defaultCinema?: Cinema | null;
   defaultRoomId?: string;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-function AddShowtimeModal({ cinemas, defaultMovie, defaultRoomId, onClose, onSuccess }: AddShowtimeModalProps) {
+function AddShowtimeModal({ cinemas, defaultMovie, defaultCinema, defaultRoomId, onClose, onSuccess }: AddShowtimeModalProps) {
   const [formData, setFormData] = useState<ShowtimeCreate>({
     movie_id: defaultMovie?.id || '',
     room_id: defaultRoomId || '',
     start_time: '',
     price: 85000,
   });
-  const [selectedCinemaId, setSelectedCinemaId] = useState<string>('');
+  const [selectedCinemaId, setSelectedCinemaId] = useState<string>(defaultCinema?.id || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -1012,6 +1388,7 @@ function AddShowtimeModal({ cinemas, defaultMovie, defaultRoomId, onClose, onSuc
               required
               className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
+              <option value="">Select Cinema</option>
               {cinemas.map((cinema) => (
                 <option key={cinema.id} value={cinema.id}>
                   {cinema.name} - {cinema.city}

@@ -332,7 +332,7 @@ export async function confirmBooking(req, res) {
         );
 
         for (const seatBooking of seatBookingsResult.rows) {
-            const qrData = `TICKET-${bookingId}-${seatBooking.seat_id}`;
+            const qrData = `TICKET-${seatBooking.id}`;
             const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}`;
             
             await client.query(
@@ -593,8 +593,8 @@ export async function getBooking(req, res) {
 }
 
 /**
- * Lấy danh sách booking của user
- * GET /bookings/user
+ * Lấy danh sách booking của user hiện tại
+ * GET /bookings
  */
 export async function getUserBookings(req, res) {
     try {
@@ -604,12 +604,13 @@ export async function getUserBookings(req, res) {
         if (!user_id) {
             return res.status(400).json({
                 success: false,
-                message: 'Missing user_id'
+                message: 'Thiếu thông tin user_id'
             });
         }
 
+        // Build query với điều kiện lọc
         let query = `
-            SELECT b.*, 
+            SELECT b.*,
                    s.start_time, s.end_time, s.price as showtime_price,
                    m.id as movie_id, m.title as movie_title, m.poster_url, m.duration_minutes,
                    r.id as room_id, r.name as room_name,
@@ -625,23 +626,26 @@ export async function getUserBookings(req, res) {
         `;
         const params = [user_id];
 
-        if (status) {
+        // Thêm điều kiện lọc theo status nếu có
+        if (status && status !== 'all') {
             query += ` AND b.status = $${params.length + 1}`;
             params.push(status);
         }
 
+        // Sắp xếp và phân trang
         query += ` ORDER BY b.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
         params.push(parseInt(limit), parseInt(offset));
 
         const bookingsResult = await db.query(query, params);
 
-        // Get tickets for each booking
+        // Lấy thông tin vé cho từng booking
         const bookings = await Promise.all(bookingsResult.rows.map(async (booking) => {
             const ticketsResult = await db.query(
                 `SELECT sb.*, s.row, s.number, s.seat_type
                  FROM seat_bookings sb
                  JOIN seats s ON sb.seat_id = s.id
-                 WHERE sb.booking_id = $1`,
+                 WHERE sb.booking_id = $1
+                 ORDER BY s.row, s.number`,
                 [booking.id]
             );
 
@@ -649,20 +653,21 @@ export async function getUserBookings(req, res) {
                 id: booking.id,
                 user_id: booking.user_id,
                 showtime_id: booking.showtime_id,
-                total_amount: booking.total_amount,
-                discount_amount: booking.discount_amount || 0,
-                final_amount: booking.final_amount || booking.total_amount,
+                total_amount: parseFloat(booking.total_amount),
+                discount_amount: parseFloat(booking.discount_amount || 0),
+                final_amount: parseFloat(booking.final_amount || booking.total_amount),
                 promotion_code: booking.promotion_code,
                 promotion_title: booking.promotion_title,
                 status: booking.status,
                 payment_method: booking.payment_method,
+                transaction_reference: booking.transaction_reference,
                 created_at: booking.created_at,
                 updated_at: booking.updated_at,
                 showtime: {
                     id: booking.showtime_id,
                     start_time: booking.start_time,
                     end_time: booking.end_time,
-                    price: booking.showtime_price,
+                    price: parseFloat(booking.showtime_price),
                     movie: {
                         id: booking.movie_id,
                         title: booking.movie_title,
@@ -685,23 +690,46 @@ export async function getUserBookings(req, res) {
                     seat_row: sb.row,
                     seat_number: sb.number,
                     seat_type: sb.seat_type,
-                    price: sb.price,
+                    price: parseFloat(sb.price),
                     qr_code_url: sb.qr_code_url,
                     is_used: sb.is_used
-                }))
+                })),
+                // Thêm thông tin thống kê
+                ticket_count: ticketsResult.rows.length,
+                used_tickets: ticketsResult.rows.filter(t => t.is_used).length,
+                unused_tickets: ticketsResult.rows.filter(t => !t.is_used).length
             };
         }));
 
+        // Lấy tổng số booking để phân trang
+        const countQuery = `
+            SELECT COUNT(*) as total
+            FROM bookings b
+            WHERE b.user_id = $1
+            ${status && status !== 'all' ? 'AND b.status = $2' : ''}
+        `;
+        const countParams = status && status !== 'all' ? [user_id, status] : [user_id];
+        const countResult = await db.query(countQuery, countParams);
+        const total = parseInt(countResult.rows[0].total);
+
         res.status(200).json({
             success: true,
-            data: bookings
+            data: {
+                bookings,
+                pagination: {
+                    page: Math.floor(parseInt(offset) / parseInt(limit)) + 1,
+                    limit: parseInt(limit),
+                    total,
+                    total_pages: Math.ceil(total / parseInt(limit))
+                }
+            }
         });
 
     } catch (error) {
         console.error('Error getting user bookings:', error);
         res.status(500).json({
             success: false,
-            message: 'Lỗi server'
+            message: 'Lỗi server khi lấy danh sách booking'
         });
     }
 }
@@ -743,16 +771,14 @@ export async function getBookedSeats(req, res) {
 }
 
 /**
- * Check-in vé (quét QR code)
+ * Check-in tất cả ghế trong booking (dành cho admin manage tickets)
  * POST /bookings/:bookingId/checkin
- * Body: { seat_booking_id?: string } - nếu có thì checkin 1 ghế, không có thì checkin tất cả
  */
 export async function checkinBooking(req, res) {
     const client = await db.getClient();
     
     try {
         const { bookingId } = req.params;
-        const { seat_booking_id, seat_id, qr_data } = req.body;
 
         if (!bookingId) {
             return res.status(400).json({
@@ -804,19 +830,19 @@ export async function checkinBooking(req, res) {
             });
         }
 
-        // Check if showtime has passed (with 30 min buffer after start)
+        // Check if showtime has passed
         const now = new Date();
         const showtimeStart = new Date(booking.start_time);
         const showtimeEnd = new Date(booking.end_time);
         
-        // Allow check-in from 15 mins before showtime to end of movie
-        const checkinWindowStart = new Date(showtimeStart.getTime() - 15 * 60 * 1000);
+        // Allow check-in from 30 mins before showtime to end of movie
+        const checkinWindowStart = new Date(showtimeStart.getTime() - 30 * 60 * 1000);
         
         if (now < checkinWindowStart) {
             await client.query('ROLLBACK');
             return res.status(400).json({
                 success: false,
-                message: `Chưa đến giờ check-in. Suất chiếu bắt đầu lúc ${showtimeStart.toLocaleTimeString('vi-VN')}`
+                message: `Chưa đến giờ check-in. Check-in mở từ ${checkinWindowStart.toLocaleTimeString('vi-VN')} ngày ${checkinWindowStart.toLocaleDateString('vi-VN')}`
             });
         }
 
@@ -828,7 +854,7 @@ export async function checkinBooking(req, res) {
             });
         }
 
-        // Get seat bookings
+        // Get all seat bookings for this booking
         const seatBookingsResult = await client.query(
             `SELECT sb.*, st.row, st.number, st.seat_type
              FROM seat_bookings sb
@@ -845,50 +871,19 @@ export async function checkinBooking(req, res) {
             });
         }
 
-        // Check if specific seat_booking is provided (ưu tiên seat_booking_id, fallback seat_id)
-        let seatsToCheckin = seatBookingsResult.rows;
-        const targetId = seat_booking_id || seat_id;
-        
-        if (targetId) {
-            // Tìm theo seat_booking.id hoặc seat_id
-            seatsToCheckin = seatsToCheckin.filter(sb => 
-                sb.id === targetId || sb.seat_id === targetId
-            );
-            if (seatsToCheckin.length === 0) {
-                await client.query('ROLLBACK');
-                return res.status(404).json({
-                    success: false,
-                    message: 'Ghế không thuộc booking này'
-                });
-            }
-        }
+        // Filter out already used seats
+        const unusedSeats = seatBookingsResult.rows.filter(sb => !sb.is_used);
 
-        // Check if already used
-        const alreadyUsed = seatsToCheckin.filter(sb => sb.is_used);
-        if (alreadyUsed.length > 0) {
-            const usedSeats = alreadyUsed.map(sb => `${sb.row}${sb.number}`).join(', ');
-            // Nếu checkin 1 ghế cụ thể và đã dùng
-            if (targetId && alreadyUsed.length === seatsToCheckin.length) {
-                await client.query('ROLLBACK');
-                return res.status(400).json({
-                    success: false,
-                    message: `Vé đã được sử dụng: ${usedSeats}`
-                });
-            }
-            // Nếu checkin tất cả, chỉ cảnh báo và bỏ qua những ghế đã dùng
-            seatsToCheckin = seatsToCheckin.filter(sb => !sb.is_used);
-        }
-
-        if (seatsToCheckin.length === 0) {
+        if (unusedSeats.length === 0) {
             await client.query('ROLLBACK');
             return res.status(400).json({
                 success: false,
-                message: 'Tất cả vé đã được sử dụng'
+                message: 'Tất cả vé đã được check-in'
             });
         }
 
-        // Mark seats as used
-        const seatBookingIdsToUpdate = seatsToCheckin.map(sb => sb.id);
+        // Mark all unused seats as used
+        const seatBookingIdsToUpdate = unusedSeats.map(sb => sb.id);
         await client.query(
             `UPDATE seat_bookings 
              SET is_used = true, updated_at = NOW()
@@ -900,11 +895,11 @@ export async function checkinBooking(req, res) {
 
         // Format seats for response
         const allSeats = seatBookingsResult.rows.map(sb => `${sb.row}${sb.number}`).join(', ');
-        const checkedInSeats = seatsToCheckin.map(sb => `${sb.row}${sb.number}`).join(', ');
+        const checkedInSeats = unusedSeats.map(sb => `${sb.row}${sb.number}`).join(', ');
 
         res.status(200).json({
             success: true,
-            message: `Check-in thành công ${seatsToCheckin.length} ghế!`,
+            message: `Check-in thành công ${unusedSeats.length} ghế!`,
             data: {
                 booking_id: bookingId,
                 movie_title: booking.movie_title,
@@ -912,7 +907,7 @@ export async function checkinBooking(req, res) {
                 room_name: booking.room_name,
                 seats: allSeats,
                 checked_in_seats: checkedInSeats,
-                checked_in_count: seatsToCheckin.length,
+                checked_in_count: unusedSeats.length,
                 total_seats: seatBookingsResult.rows.length,
                 showtime: new Date(booking.start_time).toLocaleString('vi-VN'),
                 customer_name: booking.customer_name || booking.customer_email || 'Khách',
@@ -920,7 +915,8 @@ export async function checkinBooking(req, res) {
                 discount_amount: booking.discount_amount || 0,
                 final_amount: booking.final_amount || booking.total_amount,
                 promotion_code: booking.promotion_code,
-                promotion_title: booking.promotion_title
+                promotion_title: booking.promotion_title,
+                checkin_type: 'all_seats_admin'
             }
         });
 
@@ -935,7 +931,140 @@ export async function checkinBooking(req, res) {
         client.release();
     }
 }
+export async function checkinSeatBooking(req, res) {
+    const client = await db.getClient();
+    
+    try {
+        const { qr_data } = req.body;
 
+        if (!qr_data || typeof qr_data !== 'string' || !qr_data.startsWith('TICKET-')) {
+            return res.status(400).json({
+                success: false,
+                message: 'Định dạng QR không hợp lệ'
+            });
+        }
+
+        // Parse QR data: TICKET-{seatId}
+        const parsedseatbooking_id = qr_data.slice(7).trim();
+        if (!parsedseatbooking_id) {
+            return res.status(400).json({
+                success: false,
+                message: 'QR không chứa seatBookingId hợp lệ'
+            });
+        }
+
+        // --- BẮT ĐẦU THAY ĐỔI: Gộp tất cả các JOIN vào 1 câu query duy nhất ---
+        const lookupResult = await client.query(
+            `SELECT sb.*,
+                    b.id as booking_id, b.user_id, b.status as booking_status, b.created_at,
+                    u.email as email, u.full_name as full_name, 
+                    seat.row as row, seat.number as number,
+                    showtime.start_time as start_time, showtime.end_time as end_time,
+                    showtime.id as showtime_id,
+                    m.title as movie_title -- Lấy luôn tên phim ở đây
+             FROM seat_bookings sb
+             JOIN bookings b ON sb.booking_id = b.id
+             JOIN seats seat ON sb.seat_id = seat.id
+             JOIN showtimes showtime ON b.showtime_id = showtime.id
+             JOIN movies m ON showtime.movie_id = m.id -- JOIN thêm bảng movies
+             LEFT JOIN users u ON b.user_id = u.id
+             WHERE sb.id = $1
+               AND b.status = 'CONFIRMED'`,
+            [parsedseatbooking_id]
+        );
+
+        if (lookupResult.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy vé hợp lệ từ mã QR'
+            });
+        }
+
+        const seatBooking = lookupResult.rows[0];
+
+        // 1. Kiểm tra vé đã dùng chưa
+        if (seatBooking.is_used) {
+            return res.status(400).json({
+                success: false,
+                message: 'Vé đã được sử dụng trước đó'
+            });
+        }
+
+        // 2. Kiểm tra thời gian (Sử dụng trực tiếp dữ liệu từ seatBooking, không cần query lại)
+        const now = new Date();
+        const showtimeStart = new Date(seatBooking.start_time);
+        const showtimeEnd = new Date(seatBooking.end_time);
+        // Cho phép check-in trước 15 phút
+        const checkinWindowStart = new Date(showtimeStart.getTime() - 15 * 60 * 1000);
+
+        if (now < checkinWindowStart) {
+            return res.status(400).json({
+                success: false,
+                message: `Chưa đến giờ check-in. Check-in mở từ ${checkinWindowStart.toLocaleTimeString('vi-VN')} ngày ${checkinWindowStart.toLocaleDateString('vi-VN')}`
+            });
+        }
+
+        if (now > showtimeEnd) {
+            return res.status(400).json({
+                success: false,
+                message: 'Suất chiếu đã kết thúc'
+            });
+        }
+
+        // --- BẮT ĐẦU TRANSACTION ĐỂ UPDATE ---
+        await client.query('BEGIN');
+
+        // Update trạng thái vé
+        const updateResult = await client.query(
+            `UPDATE seat_bookings
+             SET is_used = true
+             WHERE id = $1 AND is_used = false
+             RETURNING *`,
+            [seatBooking.id]
+        );
+
+        if (updateResult.rowCount === 0) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({
+                success: false,
+                message: 'Vé đã được sử dụng hoặc không thể cập nhật'
+            });
+        }
+
+        // Update thời gian chỉnh sửa booking
+        await client.query(
+            `UPDATE bookings
+             SET updated_at = NOW()
+             WHERE id = $1`,
+            [seatBooking.booking_id]
+        );
+
+        await client.query('COMMIT');
+
+        res.status(200).json({
+            success: true,
+            message: 'Check-in thành công!',
+            data: {
+                seatbookingId: seatBooking.id,
+                movieTitle: seatBooking.movie_title, // Lấy từ kết quả query đầu
+                seat: `${seatBooking.row || ''}${seatBooking.number || ''}`,
+                customerName: seatBooking.full_name || seatBooking.email,
+                showtime: new Date(seatBooking.start_time).toLocaleString('vi-VN'),
+                qr_data
+            }
+        });
+
+    } catch (error) {
+        await client.query('ROLLBACK').catch(() => {});
+        console.error('Error checking in seat booking:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Lỗi server khi check-in'
+        });
+    } finally {
+        client.release();
+    }
+}
 /**
  * Lấy danh sách bookings (cho admin) với phân trang và filter
  * GET /tickets?page=1&limit=10&status=all&movie=all&search=&date=all

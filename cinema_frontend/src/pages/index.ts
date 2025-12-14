@@ -10,6 +10,5 @@ export { default as ContactPage } from './ContactPage';
 export { MoviesPage } from './MoviesPage';
 export { CinemasPage } from './CinemasPage';
 export { PromotionsPage } from './PromotionsPage';
-export { UploadTestPage } from './UploadTestPage';
 export { LoginPage, RegisterPage, AuthCallbackPage, ForgotPasswordPage, ResetPasswordPage } from './auth';
 export { AdminDashboardPage, AddMoviePage, EditMoviePage, AddCinemaPage, AddRoomsPage, EditCinemaPage, EditRoomPage, UsersPage, EditUserPage, ShowtimesPage, ManageTicketsPage } from './admin';

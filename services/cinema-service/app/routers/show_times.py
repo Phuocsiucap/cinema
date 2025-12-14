@@ -51,3 +51,15 @@ async def delete_showtime(showtime_id: str, db: AsyncSession = Depends(database.
 async def get_showtimes_by_cinema(cinema_id: str, db: AsyncSession = Depends(database.get_db)) -> List[schemas.ShowtimeResponse]:
     showtimes = await crud_showtime.get_showtimes_by_cinema(db, cinema_id)
     return showtimes
+
+@router.get("/movie/{movie_id}/upcoming", response_model=List[schemas.ShowtimeResponse])
+async def get_upcoming_showtimes_by_movie(movie_id: str, db: AsyncSession = Depends(database.get_db)):
+    """Get upcoming showtimes for a movie in the next month (for users)"""
+    showtimes = await crud_showtime.get_upcoming_showtimes_by_movie(db, movie_id)
+    return showtimes
+
+@router.get("/cinema/{cinema_id}/upcoming", response_model=List[schemas.ShowtimeResponse])
+async def get_upcoming_showtimes_by_cinema(cinema_id: str, db: AsyncSession = Depends(database.get_db)) -> List[schemas.ShowtimeResponse]:
+    """Get upcoming showtimes for a cinema in the next month (for users)"""
+    showtimes = await crud_showtime.get_upcoming_showtimes_by_cinema(db, cinema_id)
+    return showtimes
