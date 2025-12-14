@@ -98,7 +98,7 @@ async def google_login(data: schemas.TokenSchema, db: AsyncSession = Depends(dat
         else:
             # Tạo user mới
             new_user = User(
-                id=uuid.uuid4(),
+                id=str(uuid.uuid4()),
                 full_name=user_name,
                 email=user_email,
                 google_id=google_id,
@@ -190,7 +190,7 @@ async def github_login(data: schemas.GithubLoginSchema, db: AsyncSession = Depen
             else:
                 # Tạo user mới
                 new_user = User(
-                    id=uuid.uuid4(),
+                    id=str(uuid.uuid4()),
                     full_name=user_info.get('name') or user_info.get('login'),
                     email=email,
                     github_id=str(user_info.get('id')),

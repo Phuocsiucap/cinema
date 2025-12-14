@@ -27,7 +27,6 @@ def create_app() -> FastAPI:
     app = FastAPI(title="Auth Service", version="1.0.0", lifespan=lifespan)
     
     # --- 2. CẤU HÌNH CORS ---
-    # Quan trọng: Cho phép React gửi request lên
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"], # Hoặc điền cụ thể ["http://localhost:5173", "https://web-cua-ban.onrender.com"]
@@ -54,7 +53,7 @@ def create_app() -> FastAPI:
 app = create_app()
 
 if __name__ == "__main__":
-    # Lấy port từ biến môi trường của Render (mặc định 8000 nếu chạy local)
+    
     port = int(os.getenv("PORT", 8000))
     
     # Kiểm tra xem đang chạy trên Render hay Local
