@@ -117,8 +117,7 @@ export function RevenueDetailModal({
                                         scale: 3, 
                                         useCORS: true, 
                                         allowTaint: true, 
-                                        backgroundColor: '#FFFFFF', // White background
-                                        letterRendering: true 
+                                        backgroundColor: '#FFFFFF' // White background
                                     }).then(canvas => {
                                         const imgData = canvas.toDataURL('image/png');
                                         doc.addImage(imgData, 'PNG', 14, yCursor, 180, 70);

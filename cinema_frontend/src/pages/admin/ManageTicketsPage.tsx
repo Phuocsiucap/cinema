@@ -140,7 +140,31 @@ export function ManageTicketsPage() {
     }
   };
 
-  const handleViewDetail = (booking: Booking) => {
+  const handleCheckin = async (booking: any) => {
+    try {
+      const data = await bookingService.checkinBooking(booking.bookingId);
+
+      if (data.success) {
+        loadBookings(pagination.page);
+        // Update the selected booking data if it's the same booking
+        if (selectedBooking && selectedBooking.bookingId === booking.bookingId) {
+          setSelectedBooking({
+            ...selectedBooking,
+            status: 'used'
+          });
+        }
+        alert('Booking activated successfully');
+      } else {
+        alert(data.message || 'Cannot activate booking');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred while activating the booking';
+      console.error('Failed to activate booking:', errorMessage);
+      alert(errorMessage);
+    }
+  };
+
+  const handleViewDetail = (booking: any) => {
     setSelectedBooking(booking);
     setIsDetailModalOpen(true);
   };
