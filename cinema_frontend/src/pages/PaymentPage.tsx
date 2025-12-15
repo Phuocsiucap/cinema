@@ -112,7 +112,7 @@ export default function PaymentPage() {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       window.removeEventListener('unload', handleUnload);
-      
+
       // Cleanup: unlock seats if payment not completed
       if (!paymentCompleted && selectedSeats.length > 0 && showtime) {
         const seatIds = selectedSeats.map(s => s.id);
@@ -162,7 +162,7 @@ export default function PaymentPage() {
 
   const handleApplyPromotion = async () => {
     if (!promotionCode.trim()) {
-      setPromoError('Vui lòng nhập mã giảm giá');
+      setPromoError('Please enter promotion code');
       return;
     }
 
@@ -171,7 +171,7 @@ export default function PaymentPage() {
 
     try {
       const response = await promotionService.validatePromotionCode(promotionCode.trim().toUpperCase(), totalPrice);
-      
+
       if (response.valid) {
         setAppliedPromotion({
           code: response.promotion.code,
@@ -180,7 +180,7 @@ export default function PaymentPage() {
           title: response.promotion.title,
         });
         setPromoError(null);
-      } 
+      }
     } catch (err: any) {
       console.error('Error validating promotion:', err);
       setPromoError(err.error || 'Code is invalid or cannot be applied. Please select another code.');
@@ -217,18 +217,18 @@ export default function PaymentPage() {
       if (!currentBookingId) {
         const seatIds = selectedSeats.map(s => s.id);
         const createResult = await createBooking(
-          showtime.id, 
-          seatIds, 
+          showtime.id,
+          seatIds,
           user.id,
           appliedPromotion?.code // Pass promotion code
         );
-        
+
         if (!createResult.success) {
           setError(createResult.message || 'Unable to create booking');
           setIsProcessing(false);
           return;
         }
-        
+
         currentBookingId = createResult.data!.booking_id;
         setBookingId(currentBookingId);
       }
@@ -258,18 +258,18 @@ export default function PaymentPage() {
 
       // Navigate to success page or my tickets
       setPaymentCompleted(true);
-      
+
       // Clear stored seats since payment was successful
       sessionStorage.removeItem(`selectedSeats_${showtime.id}`);
-      
-      navigate('/my-tickets', { 
-        state: { 
-          success: true, 
+
+      navigate('/my-tickets', {
+        state: {
+          success: true,
           bookingId: currentBookingId,
-          message: 'Payment successful!' 
-        } 
+          message: 'Payment successful!'
+        }
       });
-    } catch (err: any ) {
+    } catch (err: any) {
       console.error('Payment error:', err);
       setError(err.message || err.error || 'An error occurred during payment');
     } finally {
@@ -288,7 +288,7 @@ export default function PaymentPage() {
     const standard = selectedSeats.filter(s => s.seat_type === 'STANDARD');
     const vip = selectedSeats.filter(s => s.seat_type === 'VIP');
     const couple = selectedSeats.filter(s => s.seat_type === 'COUPLE');
-    
+
     const breakdown = [];
     if (standard.length > 0) {
       const price = standard[0].price;
@@ -323,9 +323,9 @@ export default function PaymentPage() {
     <MainLayout>
       {/* Background */}
       {showtime.movie?.poster_url && (
-        <div 
+        <div
           className="fixed inset-0 bg-cover bg-center bg-no-repeat -z-10"
-          style={{ 
+          style={{
             backgroundImage: `url(${showtime.movie.poster_url})`,
           }}
         >
@@ -343,8 +343,8 @@ export default function PaymentPage() {
               {showtime.movie?.title}
             </Link>
             <ChevronRight className="w-4 h-4" />
-            <Link 
-              to={`/booking/seats/${showtime.id}`} 
+            <Link
+              to={`/booking/seats/${showtime.id}`}
               className="hover:text-white transition-colors"
             >
               Select Seats
@@ -375,11 +375,10 @@ export default function PaymentPage() {
                   </h2>
                   <div className="flex flex-col gap-3">
                     {/* Credit/Debit Card */}
-                    <label className={`flex cursor-pointer items-center gap-4 rounded-lg border-2 border-solid p-4 transition-all ${
-                      paymentMethod === 'card' 
-                        ? 'border-red-500 bg-red-500/10 ring-2 ring-red-500/50' 
+                    <label className={`flex cursor-pointer items-center gap-4 rounded-lg border-2 border-solid p-4 transition-all ${paymentMethod === 'card'
+                        ? 'border-red-500 bg-red-500/10 ring-2 ring-red-500/50'
                         : 'border-white/10 bg-black/40 hover:border-white/20'
-                    }`}>
+                      }`}>
                       <input
                         type="radio"
                         name="payment-method"
@@ -397,11 +396,10 @@ export default function PaymentPage() {
                     </label>
 
                     {/* MoMo */}
-                    <label className={`flex cursor-pointer items-center gap-4 rounded-lg border-2 border-solid p-4 transition-all ${
-                      paymentMethod === 'momo' 
-                        ? 'border-red-500 bg-red-500/10 ring-2 ring-red-500/50' 
+                    <label className={`flex cursor-pointer items-center gap-4 rounded-lg border-2 border-solid p-4 transition-all ${paymentMethod === 'momo'
+                        ? 'border-red-500 bg-red-500/10 ring-2 ring-red-500/50'
                         : 'border-white/10 bg-black/40 hover:border-white/20'
-                    }`}>
+                      }`}>
                       <input
                         type="radio"
                         name="payment-method"
@@ -418,11 +416,10 @@ export default function PaymentPage() {
                     </label>
 
                     {/* VNPay */}
-                    <label className={`flex cursor-pointer items-center gap-4 rounded-lg border-2 border-solid p-4 transition-all ${
-                      paymentMethod === 'vnpay' 
-                        ? 'border-red-500 bg-red-500/10 ring-2 ring-red-500/50' 
+                    <label className={`flex cursor-pointer items-center gap-4 rounded-lg border-2 border-solid p-4 transition-all ${paymentMethod === 'vnpay'
+                        ? 'border-red-500 bg-red-500/10 ring-2 ring-red-500/50'
                         : 'border-white/10 bg-black/40 hover:border-white/20'
-                    }`}>
+                      }`}>
                       <input
                         type="radio"
                         name="payment-method"
@@ -439,11 +436,10 @@ export default function PaymentPage() {
                     </label>
 
                     {/* PayPal */}
-                    <label className={`flex cursor-pointer items-center gap-4 rounded-lg border-2 border-solid p-4 transition-all ${
-                      paymentMethod === 'paypal' 
-                        ? 'border-red-500 bg-red-500/10 ring-2 ring-red-500/50' 
+                    <label className={`flex cursor-pointer items-center gap-4 rounded-lg border-2 border-solid p-4 transition-all ${paymentMethod === 'paypal'
+                        ? 'border-red-500 bg-red-500/10 ring-2 ring-red-500/50'
                         : 'border-white/10 bg-black/40 hover:border-white/20'
-                    }`}>
+                      }`}>
                       <input
                         type="radio"
                         name="payment-method"
@@ -553,7 +549,7 @@ export default function PaymentPage() {
                 <h2 className="text-white text-[22px] font-bold leading-tight tracking-tight border-b border-white/10 pb-4">
                   Booking Information
                 </h2>
-                
+
                 {/* Movie Info */}
                 <div className="flex gap-4">
                   {showtime.movie?.poster_url && (

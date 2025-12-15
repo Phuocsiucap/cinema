@@ -7,7 +7,7 @@ export interface SeatCreate {
   row: string;
   number: number;
   seat_type: SeatType;
-  is_active?: boolean; // false = ghế hỏng/lối đi
+  is_active?: boolean; // false = broken seat/aisle
 }
 
 export interface Seat {
@@ -31,7 +31,7 @@ export interface RoomCreate {
 
 export interface RoomUpdate {
   name?: string;
-  seats?: SeatCreate[];  // Nếu có seats thì sẽ thay thế toàn bộ ghế
+  seats?: SeatCreate[];  // If seats provided, will replace all seats
 }
 
 export interface CinemaRoom {

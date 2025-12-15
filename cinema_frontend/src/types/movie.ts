@@ -83,14 +83,14 @@ export const RATING_OPTIONS = [
 ];
 
 export const STATUS_OPTIONS = [
-  { value: 'upcoming', label: 'Sắp công chiếu' },
-  { value: 'now_showing', label: 'Đang chiếu' },
-  { value: 'closed', label: 'Đã đóng' },
+  { value: 'upcoming', label: 'Upcoming' },
+  { value: 'now_showing', label: 'Now Showing' },
+  { value: 'closed', label: 'Closed' },
 ];
 
 export const GENRE_OPTIONS = [
   'Action',
-  'Adventure', 
+  'Adventure',
   'Animation',
   'Comedy',
   'Crime',

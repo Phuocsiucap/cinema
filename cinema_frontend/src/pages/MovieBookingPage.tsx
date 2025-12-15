@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  Clock, 
-  MapPin, 
+import {
+  Clock,
+  MapPin,
   Loader2,
   Star,
   Minus,
@@ -32,15 +32,15 @@ interface GroupedByDate {
 export default function MovieBookingPage() {
   const { id: movieId } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  
+
   // Data states
   const [movie, setMovie] = useState<Movie | null>(null);
   const [allShowtimes, setAllShowtimes] = useState<Showtime[]>([]);
-  
+
   // Selection states
   const [selectedShowtime, setSelectedShowtime] = useState<Showtime | null>(null);
   const [ticketCount, setTicketCount] = useState(2);
-  
+
   // Loading states
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingShowtimes, setIsLoadingShowtimes] = useState(false);
@@ -49,7 +49,7 @@ export default function MovieBookingPage() {
   useEffect(() => {
     const loadMovie = async () => {
       if (!movieId) return;
-      
+
       try {
         setIsLoading(true);
         const movieData = await movieService.getMovie(movieId);
@@ -68,12 +68,12 @@ export default function MovieBookingPage() {
   useEffect(() => {
     const loadShowtimes = async () => {
       if (!movieId) return;
-      
+
       try {
         setIsLoadingShowtimes(true);
         const data = await showtimeService.getUpcomingShowtimesByMovie(movieId);
         console.log('Fetched showtimes:', data);
-        
+
         setAllShowtimes(data);
       } catch (err) {
         console.error('Failed to load showtimes:', err);
@@ -88,11 +88,11 @@ export default function MovieBookingPage() {
   // Group showtimes by date, then by cinema and room
   const groupedByDate = useMemo((): GroupedByDate[] => {
     const dateMap = new Map<string, GroupedByDate>();
-    
+
     allShowtimes.forEach(showtime => {
       const showDate = new Date(showtime.start_time);
       const dateKey = showDate.toDateString();
-      
+
       if (!dateMap.has(dateKey)) {
         dateMap.set(dateKey, {
           date: showDate,
@@ -100,11 +100,11 @@ export default function MovieBookingPage() {
           cinemas: [],
         });
       }
-      
+
       const dateGroup = dateMap.get(dateKey)!;
       const cinema = showtime.room?.cinema;
       if (!cinema) return;
-      
+
       let cinemaGroup = dateGroup.cinemas.find(c => c.id === cinema.id);
       if (!cinemaGroup) {
         cinemaGroup = {
@@ -115,7 +115,7 @@ export default function MovieBookingPage() {
         };
         dateGroup.cinemas.push(cinemaGroup);
       }
-      
+
       let roomGroup = cinemaGroup.rooms.find(r => r.id === showtime.room?.id);
       if (!roomGroup && showtime.room) {
         roomGroup = {
@@ -125,25 +125,25 @@ export default function MovieBookingPage() {
         };
         cinemaGroup.rooms.push(roomGroup);
       }
-      
+
       roomGroup?.showtimes.push(showtime);
     });
-    
+
     // Sort by date, and showtimes by time
     const result = Array.from(dateMap.values()).sort(
       (a, b) => a.date.getTime() - b.date.getTime()
     );
-    
+
     result.forEach(dateGroup => {
       dateGroup.cinemas.forEach(cinema => {
         cinema.rooms.forEach(room => {
-          room.showtimes.sort((a, b) => 
+          room.showtimes.sort((a, b) =>
             new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
           );
         });
       });
     });
-    
+
     return result;
   }, [allShowtimes]);
 
@@ -163,14 +163,14 @@ export default function MovieBookingPage() {
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
-    
+
     let prefix = days[date.getDay()];
     if (date.toDateString() === today.toDateString()) {
       prefix = 'Today';
     } else if (date.toDateString() === tomorrow.toDateString()) {
       prefix = 'Tomorrow';
     }
-    
+
     return `${prefix}, ${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
   };
 
@@ -209,9 +209,9 @@ export default function MovieBookingPage() {
     <MainLayout>
       <div className="min-h-screen relative text-white">
         {/* Fixed Background Image */}
-        <div 
+        <div
           className="fixed inset-0 w-full h-full z-0"
-          style={{ 
+          style={{
             backgroundImage: `url(${movie.background_url || movie.poster_url || ''})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
@@ -267,7 +267,7 @@ export default function MovieBookingPage() {
                     <Calendar size={24} className="text-amber-500" />
                     Showtimes
                   </h2>
-                  
+
                   {isLoadingShowtimes ? (
                     <div className="flex items-center justify-center py-12">
                       <Loader2 className="animate-spin text-amber-500" size={32} />
@@ -279,7 +279,7 @@ export default function MovieBookingPage() {
                     </div>
                   ) : (
                     groupedByDate.map((dateGroup) => (
-                      <div 
+                      <div
                         key={dateGroup.dateStr}
                         className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden"
                       >
@@ -289,11 +289,11 @@ export default function MovieBookingPage() {
                             {formatDateFull(dateGroup.date)}
                           </h3>
                         </div>
-                        
+
                         {/* Cinemas for this date */}
                         <div className="p-4 space-y-4">
                           {dateGroup.cinemas.map((cinema) => (
-                            <div 
+                            <div
                               key={cinema.id}
                               className="bg-white/5 rounded-lg p-4"
                             >
@@ -304,39 +304,38 @@ export default function MovieBookingPage() {
                                   <p className="text-gray-500 text-sm">{cinema.city}</p>
                                 </div>
                               </div>
-                              
+
                               {cinema.rooms.map((room) => (
                                 <div key={room.id} className="mb-3 last:mb-0 ml-7">
                                   <p className="text-gray-400 text-sm mb-2">{room.name}</p>
                                   <div className="flex flex-wrap gap-2">
                                     {room.showtimes.map((showtime) => {
-                                        const isSelected = selectedShowtime?.id === showtime.id;
-                                        const now = new Date();
-                                        const startTime = new Date(showtime.start_time);
-                                        // Keep selling until 10 minutes AFTER showtime starts
-                                        const SALE_WINDOW_AFTER_MIN = 10; // allow sales until 10 minutes after start
-                                        const msSinceStart = now.getTime() - startTime.getTime();
-                                        const msUntilEndOfWindow = startTime.getTime() + SALE_WINDOW_AFTER_MIN * 60 * 1000 - now.getTime();
-                                        const isSalesClosed = msUntilEndOfWindow < 0; // closed if now is later than start + window
-                                        const cutoffTime = new Date(startTime.getTime() + SALE_WINDOW_AFTER_MIN * 60 * 1000);
+                                      const isSelected = selectedShowtime?.id === showtime.id;
+                                      const now = new Date();
+                                      const startTime = new Date(showtime.start_time);
+                                      // Keep selling until 10 minutes AFTER showtime starts
+                                      const SALE_WINDOW_AFTER_MIN = 10; // allow sales until 10 minutes after start
+                                      const msSinceStart = now.getTime() - startTime.getTime();
+                                      const msUntilEndOfWindow = startTime.getTime() + SALE_WINDOW_AFTER_MIN * 60 * 1000 - now.getTime();
+                                      const isSalesClosed = msUntilEndOfWindow < 0; // closed if now is later than start + window
+                                      const cutoffTime = new Date(startTime.getTime() + SALE_WINDOW_AFTER_MIN * 60 * 1000);
 
-                                        const handleShowtimeClick = () => {
-                                          if (isSalesClosed) {
-                                            alert(`Bán vé đã đóng. Bán vé sẽ đóng sau ${SALE_WINDOW_AFTER_MIN} phút kể từ bắt đầu suất, lúc ${cutoffTime.toLocaleTimeString('vi-VN')} ngày ${cutoffTime.toLocaleDateString('vi-VN')}`);
-                                            return;
-                                          }
-                                          handleSelectShowtime(showtime);
-                                        };
-                                      
+                                      const handleShowtimeClick = () => {
+                                        if (isSalesClosed) {
+                                          alert(`Ticket sales closed. Sales close ${SALE_WINDOW_AFTER_MIN} minutes after showtime starts, at ${cutoffTime.toLocaleTimeString('en-US')} on ${cutoffTime.toLocaleDateString('en-US')}`);
+                                          return;
+                                        }
+                                        handleSelectShowtime(showtime);
+                                      };
+
                                       return (
                                         <button
                                           key={showtime.id}
                                           onClick={handleShowtimeClick}
                                           disabled={isSalesClosed}
-                                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                                              isSalesClosed
-                                                ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
-                                                : isSelected
+                                          className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${isSalesClosed
+                                              ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
+                                              : isSelected
                                                 ? 'bg-amber-500 text-black ring-2 ring-amber-300'
                                                 : 'bg-gray-800 text-white hover:bg-gray-700'
                                             }`}
@@ -366,7 +365,7 @@ export default function MovieBookingPage() {
                   <h2 className="text-lg font-semibold text-white mb-4 uppercase tracking-wide">
                     Booking Information
                   </h2>
-                  
+
                   {selectedShowtime ? (
                     <>
                       <div className="flex gap-4 mb-6">
@@ -382,7 +381,7 @@ export default function MovieBookingPage() {
                           <p className="text-white font-medium">{movie.title}</p>
                         </div>
                       </div>
-                      
+
                       <div className="space-y-3 text-sm">
                         <div className="flex justify-between">
                           <span className="text-gray-500">Cinema</span>
@@ -411,7 +410,7 @@ export default function MovieBookingPage() {
                           <span className="text-white">{formatPrice(selectedShowtime.price)} / ticket</span>
                         </div>
                       </div>
-                      
+
                       <div className="mt-6 pt-4 border-t border-white/10">
                         <div className="flex items-center justify-between mb-4">
                           <span className="text-gray-400">Number of Tickets</span>
@@ -431,12 +430,12 @@ export default function MovieBookingPage() {
                             </button>
                           </div>
                         </div>
-                        
+
                         <div className="flex justify-between items-center mb-6">
                           <span className="text-gray-400">Total</span>
                           <span className="text-2xl font-bold text-amber-400">{formatPrice(totalPrice)}</span>
                         </div>
-                        
+
                         <button
                           onClick={handleProceedToSeats}
                           className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-black font-semibold rounded-lg transition-colors"

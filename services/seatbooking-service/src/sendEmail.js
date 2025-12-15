@@ -58,7 +58,7 @@ export async function sendOTPEmail(req, res) {
     const saveResult = await saveOTPToRedis(userId, otpCode);
     
     if (!saveResult) {
-        return res.status(400).json({ success: false, message: 'Không thể tạo mã OTP mới vào lúc này. Vui lòng thử lại sau.' })
+        return res.status(400).json({ success: false, message: 'Cannot generate new OTP at this time. Please try again later.' })
     }
 
     const emailSubject = `Mã xác thực OTP của bạn: ${otpCode}`;
@@ -74,9 +74,9 @@ export async function sendOTPEmail(req, res) {
     const sendResult = await sendGenericEmail(fromAddress, recipientEmail, emailSubject, emailHtmlContent);
 
     if (!sendResult.success) {
-        return res.status(500).json({ success: false, message: 'Lỗi khi gửi email OTP. Vui lòng thử lại sau.' });
+        return res.status(500).json({ success: false, message: 'Error sending OTP email. Please try again later.' });
     }
-    return res.status(200).json({ success: true, message: 'Mã OTP đã được gửi đến email của bạn.', emailId: sendResult.emailId });
+    return res.status(200).json({ success: true, message: 'OTP code has been sent to your email.', emailId: sendResult.emailId });
 }
 
 
@@ -86,10 +86,10 @@ export async function verifyOTP(req, res) {
     const key = `otp-verify-email:${userId}`;
     const storedOtp = await redis.get(key);
     if (!storedOtp || storedOtp.toString !== otpCode.toString) {
-        return res.status(400).json({ success: false, message: 'Mã OTP không hợp lệ hoặc đã hết hạn.' });
+        return res.status(400).json({ success: false, message: 'Invalid or expired OTP code.' });
     }
     await redis.del(key);
-    return res.status(200).json({ success: true, message: 'Xác thực OTP thành công.' });
+    return res.status(200).json({ success: true, message: 'OTP verification successful.' });
 
 }
 
@@ -97,14 +97,14 @@ export async function resetPasswordWithOTP(req, res) {
     const { userId, otpCode, newPassword } = req.body;
 
     if (!userId || !otpCode || !newPassword) {
-        return res.status(400).json({ success: false, message: 'userId, otpCode và newPassword là bắt buộc.' });
+        return res.status(400).json({ success: false, message: 'userId, otpCode and newPassword are required.' });
     }
 
     // Verify OTP first
     const key = `otp-verify-email:${userId}`;
     const storedOtp = await redis.get(key);
     if (!storedOtp || storedOtp !== otpCode) {
-        return res.status(400).json({ success: false, message: 'Mã OTP không hợp lệ hoặc đã hết hạn.' });
+        return res.status(400).json({ success: false, message: 'Invalid or expired OTP code.' });
     }
 
     // Hash new password
@@ -120,10 +120,10 @@ export async function resetPasswordWithOTP(req, res) {
         // Delete OTP after successful password reset
         await redis.del(key);
         
-        return res.status(200).json({ success: true, message: 'Mật khẩu đã được cập nhật thành công.' });
+        return res.status(200).json({ success: true, message: 'Password has been updated successfully.' });
     } catch (error) {
         console.error('Lỗi khi cập nhật mật khẩu:', error);
-        return res.status(500).json({ success: false, message: 'Lỗi hệ thống. Vui lòng thử lại sau.' });
+        return res.status(500).json({ success: false, message: 'System error. Please try again later.' });
     }
 }
 
@@ -141,7 +141,7 @@ export async function forgotPassword(req, res) {
         const otpCode = generateOTP();
         const saveResult = await saveOTPToRedis(userId, otpCode);
         if (!saveResult) {
-            return res.status(400).json({ success: false, message: 'Không thể tạo mã OTP mới vào lúc này. Vui lòng thử lại sau.' })
+            return res.status(400).json({ success: false, message: 'Cannot generate new OTP at this time. Please try again later.' })
         }
      
         const emailSubject = `Mã xác thực OTP của bạn: ${otpCode}`;
@@ -155,12 +155,12 @@ export async function forgotPassword(req, res) {
         const fromAddress = "noreply@phuocsiucap.id.vn"; 
         const sendResult = await sendGenericEmail(fromAddress, recipientEmail, emailSubject, emailHtmlContent);
         if (!sendResult.success) {
-            return res.status(500).json({ success: false, message: 'Lỗi khi gửi email OTP. Vui lòng thử lại sau.' });
+            return res.status(500).json({ success: false, message: 'Error sending OTP email. Please try again later.' });
         }
-        return res.status(200).json({ success: true, message: 'Mã OTP đã được gửi đến email của bạn. Vui lòng nhập mã để đổi mật khẩu', emailId: sendResult.emailId, userId: userId });
+        return res.status(200).json({ success: true, message: 'OTP code has been sent to your email. Please enter the code to reset your password', emailId: sendResult.emailId, userId: userId });
 
     } catch (error) {
-        console.error('Lỗi khi xử lý quên mật khẩu:', error);
-        return res.status(500).json({ success: false, message: 'Lỗi hệ thống. Vui lòng thử lại sau.' });
+        console.error('Error processing forgot password:', error);
+        return res.status(500).json({ success: false, message: 'System error. Please try again later.' });
     }
 }

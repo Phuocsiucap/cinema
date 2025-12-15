@@ -14,7 +14,7 @@ export function setIO(socketIO) {
 }
 
 /**
- * Tạo booking mới
+ * Create new booking
  * POST /bookings
  */
 export async function createBooking(req, res) {
@@ -39,7 +39,7 @@ export async function createBooking(req, res) {
             if (lockedBy !== user_id) {
                 return res.status(400).json({
                     success: false,
-                    message: `Ghế ${seat_id} chưa được giữ hoặc đã hết hạn. Vui lòng chọn lại ghế.`
+                    message: `Seat ${seat_id} is not locked or has expired. Please select the seat again.`
                 });
             }
         }
@@ -56,7 +56,7 @@ export async function createBooking(req, res) {
             await client.query('ROLLBACK');
             return res.status(404).json({
                 success: false,
-                message: 'Suất chiếu không tồn tại'
+                message: 'Showtime does not exist'
             });
         }
 
@@ -72,7 +72,7 @@ export async function createBooking(req, res) {
             await client.query('ROLLBACK');
             return res.status(400).json({
                 success: false,
-                message: 'Một số ghế không hợp lệ'
+                message: 'Some seats are invalid'
             });
         }
 
@@ -92,7 +92,7 @@ export async function createBooking(req, res) {
             const bookedSeats = existingBookingsResult.rows.map(r => r.seat_id);
             return res.status(409).json({
                 success: false,
-                message: 'Một số ghế đã được đặt',
+                message: 'Some seats are already booked',
                 booked_seats: bookedSeats
             });
         }
@@ -102,9 +102,9 @@ export async function createBooking(req, res) {
         const seatPrices = seatsResult.rows.map(seat => {
             let price = basePrice;
             if (seat.seat_type === 'VIP') {
-                price = basePrice * 1.25; // VIP gấp 1.25 lần ghế thường
+                price = basePrice * 1.25; // VIP seats are 1.25 times regular seats
             }
-            // COUPLE giữ nguyên giá vì đã được bán theo cặp
+            // COUPLE seats keep original price as they are sold in pairs
             totalAmount += price;
             return { seat_id: seat.id, seat_type: seat.seat_type, price };
         });
@@ -133,19 +133,19 @@ export async function createBooking(req, res) {
                 // Check dates
                 if (promotion.start_date && new Date(promotion.start_date) > now) {
                     isValid = false;
-                    errorMessage = 'Mã giảm giá chưa có hiệu lực';
+                    errorMessage = 'Promotion code is not yet active';
                 } else if (promotion.end_date && new Date(promotion.end_date) < now) {
                     isValid = false;
-                    errorMessage = 'Mã giảm giá đã hết hạn';
+                    errorMessage = 'Promotion code has expired';
                 } else if (promotion.usage_limit && promotion.used_count >= promotion.usage_limit) {
                     isValid = false;
-                    errorMessage = 'Mã giảm giá đã hết lượt sử dụng';
+                    errorMessage = 'Promotion code usage limit exceeded';
                 } else if (promotion.min_purchase && totalAmount < promotion.min_purchase) {
                     isValid = false;
-                    errorMessage = `Đơn hàng tối thiểu ${promotion.min_purchase.toLocaleString('vi-VN')}đ`;
+                    errorMessage = `Minimum order amount is ${promotion.min_purchase.toLocaleString('vi-VN')} VND`;
                 } else if (promotion.min_tickets && seat_ids.length < promotion.min_tickets) {
                     isValid = false;
-                    errorMessage = `Cần đặt tối thiểu ${promotion.min_tickets} vé`;
+                    errorMessage = `Minimum ${promotion.min_tickets} tickets required`;
                 }
 
                 if (!isValid) {
@@ -173,7 +173,7 @@ export async function createBooking(req, res) {
                 await client.query('ROLLBACK');
                 return res.status(400).json({
                     success: false,
-                    message: 'Mã giảm giá không hợp lệ hoặc đã bị vô hiệu hóa'
+                    message: 'Invalid or disabled promotion code'
                 });
             }
         }
@@ -194,7 +194,7 @@ export async function createBooking(req, res) {
         // Create seat bookings with discounted prices
         for (const seat of seatPrices) {
             const seatBookingId = uuidv4();
-            const discountedPrice = seat.price * discountRatio; // Áp dụng tỷ lệ giảm giá
+            const discountedPrice = seat.price * discountRatio; // Apply discount ratio
             
             await client.query(
                 `INSERT INTO seat_bookings (id, booking_id, seat_id, showtime_id, price, is_used)
@@ -236,7 +236,7 @@ export async function createBooking(req, res) {
 
         res.status(201).json({
             success: true,
-            message: 'Đặt vé thành công',
+            message: 'Booking created successfully',
             data: {
                 booking_id: bookingId,
                 showtime_id,
@@ -259,7 +259,7 @@ export async function createBooking(req, res) {
         console.error('Error creating booking:', error);
         res.status(500).json({
             success: false,
-            message: 'Lỗi server khi tạo booking'
+            message: 'Server error while creating booking'
         });
     } finally {
         client.release();
@@ -267,10 +267,10 @@ export async function createBooking(req, res) {
 }
 
 
-/**lấy danh sách booking */
+/**get booking list */
 
 /**
- * Xác nhận thanh toán và hoàn tất booking
+ * Confirm payment and complete booking
  * POST /bookings/:bookingId/confirm
  */
 export async function confirmBooking(req, res) {
@@ -300,7 +300,7 @@ export async function confirmBooking(req, res) {
             await client.query('ROLLBACK');
             return res.status(404).json({
                 success: false,
-                message: 'Không tìm thấy booking'
+                message: 'Booking not found'
             });
         }
 
@@ -310,7 +310,7 @@ export async function confirmBooking(req, res) {
             await client.query('ROLLBACK');
             return res.status(400).json({
                 success: false,
-                message: `Booking đang ở trạng thái ${booking.status}, không thể xác nhận`
+                message: `Booking is in ${booking.status} status, cannot confirm`
             });
         }
 
@@ -365,7 +365,7 @@ export async function confirmBooking(req, res) {
 
         res.status(200).json({
             success: true,
-            message: 'Thanh toán thành công',
+            message: 'Payment successful',
             data: {
                 booking_id: bookingId,
                 status: 'CONFIRMED'
@@ -377,7 +377,7 @@ export async function confirmBooking(req, res) {
         console.error('Error confirming booking:', error);
         res.status(500).json({
             success: false,
-            message: 'Lỗi server khi xác nhận booking'
+            message: 'Server error while confirming booking'
         });
     } finally {
         client.release();
@@ -414,7 +414,7 @@ export async function cancelBooking(req, res) {
             await client.query('ROLLBACK');
             return res.status(404).json({
                 success: false,
-                message: 'Không tìm thấy booking'
+                message: 'Booking not found'
             });
         }
 
@@ -424,7 +424,7 @@ export async function cancelBooking(req, res) {
             await client.query('ROLLBACK');
             return res.status(400).json({
                 success: false,
-                message: 'Booking đã được hủy trước đó'
+                message: 'Booking was already cancelled'
             });
         }
 
@@ -474,7 +474,7 @@ export async function cancelBooking(req, res) {
 
         res.status(200).json({
             success: true,
-            message: 'Hủy booking thành công'
+            message: 'Booking cancelled successfully'
         });
 
     } catch (error) {
@@ -482,7 +482,7 @@ export async function cancelBooking(req, res) {
         console.error('Error cancelling booking:', error);
         res.status(500).json({
             success: false,
-            message: 'Lỗi server khi hủy booking'
+            message: 'Server error while cancelling booking'
         });
     } finally {
         client.release();
@@ -518,7 +518,7 @@ export async function getBooking(req, res) {
         if (bookingResult.rows.length === 0) {
             return res.status(404).json({
                 success: false,
-                message: 'oking'
+                message: 'Booking not found'
             });
         }
 
@@ -587,7 +587,7 @@ export async function getBooking(req, res) {
         console.error('Error getting booking:', error);
         res.status(500).json({
             success: false,
-            message: 'Lỗi server'
+            message: 'Server error'
         });
     }
 }
@@ -604,7 +604,7 @@ export async function getUserBookings(req, res) {
         if (!user_id) {
             return res.status(400).json({
                 success: false,
-                message: 'Thiếu thông tin user_id'
+                message: 'Missing user_id information'
             });
         }
 
@@ -783,7 +783,7 @@ export async function checkinBooking(req, res) {
         if (!bookingId) {
             return res.status(400).json({
                 success: false,
-                message: 'Thiếu mã booking'
+                message: 'Missing booking code'
             });
         }
 
@@ -815,7 +815,7 @@ export async function checkinBooking(req, res) {
             await client.query('ROLLBACK');
             return res.status(404).json({
                 success: false,
-                message: 'Không tìm thấy booking'
+                message: 'Booking not found'
             });
         }
 

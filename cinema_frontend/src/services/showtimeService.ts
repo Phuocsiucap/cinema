@@ -48,32 +48,32 @@ export interface ShowtimeUpdate {
 const SHOWTIME_API = '/showtimes';
 
 export const showtimeService = {
-  // Tạo showtime mới
+  // Create new showtime
   createShowtime: async (data: ShowtimeCreate): Promise<Showtime> => {
     return api.post<Showtime>(`${SHOWTIME_API}/`, data);
   },
 
-  // Lấy showtimes theo movie (cho admin - tất cả thời gian)
+  // Get showtimes by movie (for admin - all times)
   getShowtimesByMovie: async (movieId: string): Promise<Showtime[]> => {
     return api.get<Showtime[]>(`${SHOWTIME_API}/movie/${movieId}`);
   },
 
-  // Lấy upcoming showtimes theo movie (cho user - trong 1 tháng tới)
+  // Get upcoming showtimes by movie (for user - within 1 month)
   getUpcomingShowtimesByMovie: async (movieId: string): Promise<Showtime[]> => {
     return api.get<Showtime[]>(`${SHOWTIME_API}/movie/${movieId}/upcoming`);
   },
 
-  // Lấy showtimes theo cinema (cho admin - tất cả thời gian)
+  // Get showtimes by cinema (for admin - all times)
   getShowtimesByCinema: async (cinemaId: string): Promise<Showtime[]> => {
     return api.get<Showtime[]>(`${SHOWTIME_API}/cinema/${cinemaId}`);
   },
 
-  // Lấy upcoming showtimes theo cinema (cho user - trong 1 tháng tới)
+  // Get upcoming showtimes by cinema (for user - within 1 month)
   getUpcomingShowtimesByCinema: async (cinemaId: string): Promise<Showtime[]> => {
     return api.get<Showtime[]>(`${SHOWTIME_API}/cinema/${cinemaId}/upcoming`);
   },
 
-  // Lấy showtimes theo room
+  // Get showtimes by room
   getShowtimesByRoom: async (roomId: string, startDate?: string, endDate?: string): Promise<Showtime[]> => {
     const params = new URLSearchParams();
     if (startDate) params.append('start_date', startDate);
@@ -82,22 +82,22 @@ export const showtimeService = {
     return api.get<Showtime[]>(`${SHOWTIME_API}/room/${roomId}${queryString ? `?${queryString}` : ''}`);
   },
 
-  // Lấy showtime theo ID
+  // Get showtime by ID
   getShowtime: async (id: string): Promise<Showtime> => {
     return api.get<Showtime>(`${SHOWTIME_API}/${id}`);
   },
 
-  // Cập nhật showtime
+  // Update showtime
   updateShowtime: async (id: string, data: ShowtimeUpdate): Promise<Showtime> => {
     return api.put<Showtime>(`${SHOWTIME_API}/${id}`, data);
   },
 
-  // Xóa showtime
+  // Delete showtime
   deleteShowtime: async (id: string): Promise<void> => {
     return api.delete(`${SHOWTIME_API}/${id}`);
   },
 
-  // Lấy danh sách ghế của showtime kèm trạng thái (available/booked)
+  // Get list of showtime seats with status (available/booked)
   getShowtimeSeats: async (showtimeId: string): Promise<SeatWithStatus[]> => {
     return api.get<SeatWithStatus[]>(`${SHOWTIME_API}/${showtimeId}/seats`);
   },

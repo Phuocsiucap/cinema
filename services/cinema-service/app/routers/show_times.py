@@ -33,7 +33,7 @@ async def get_showtime(showtime_id: str, db: AsyncSession = Depends(database.get
 
 @router.get("/{showtime_id}/seats", response_model=List[schemas.SeatWithStatusResponse])
 async def get_showtime_seats(showtime_id: str, db: AsyncSession = Depends(database.get_db)):
-    """Lấy danh sách ghế của showtime kèm trạng thái (available/booked)"""
+    """Get list of seats for showtime with status (available/booked)"""
     seats = await crud_showtime.get_seats_with_status(db, showtime_id)
     return seats
 

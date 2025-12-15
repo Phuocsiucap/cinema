@@ -16,20 +16,20 @@ from app.schemas import (
 
 
 async def calculate_occupancy_rate(db: AsyncSession, comparison_type: str, row, start_date, end_date):
-    """Tính % lấp đầy cho entity"""
+    """Calculate occupancy rate for entity"""
     if comparison_type == 'cinema':
-        # Query tổng seats và tickets sold cho cinema
+        # Query total seats and tickets sold for cinema
         pass
     elif comparison_type == 'room':
-        # Query cho room cụ thể
+        # Query for specific room
         pass
     elif comparison_type == 'movie':
-        # Query cho movie cụ thể
+        # Query for specific movie
         pass
     return 0.0
 
 async def get_entity_info(db: AsyncSession, comparison_type: str, row):
-    """Lấy thông tin bổ sung cho entity"""
+    """Get additional info for entity"""
     if comparison_type == 'cinema':
         return CinemaEntityInfo(city=row.city, total_rooms=row.total_rooms)
     elif comparison_type == 'room':
@@ -38,7 +38,7 @@ async def get_entity_info(db: AsyncSession, comparison_type: str, row):
         return MovieEntityInfo(genre=row.genre, rating=row.rating or "Not Rated")
 
 async def get_revenue_comparison(db: AsyncSession, params: RevenueComparisonRequest) -> RevenueComparisonResponse:
-    """Lấy dữ liệu so sánh doanh thu giữa các thực thể (phim, rạp, phòng chiếu)"""
+    """Get revenue comparison data between entities (movies, cinemas, rooms)"""
     
     end_date = params.end_date or datetime.utcnow()
     start_date = params.start_date or (end_date - timedelta(days=30))
@@ -62,7 +62,7 @@ async def get_revenue_comparison(db: AsyncSession, params: RevenueComparisonRequ
         )
     )
     
-    #dynamic joins và group by dựa trên comparison_type
+    # Dynamic joins and group by based on comparison_type
     if params.comparison_type == 'cinema':
         query = (select(
                 Cinema.id,

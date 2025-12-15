@@ -95,7 +95,7 @@ class MovieResponse(MovieBase):
         populate_by_name = True
         
 class PaginatedMovieResponse(BaseModel):
-    """Schema cho response có phân trang"""
+    """Schema for paginated response"""
     total_count: int
     page: int
     size: int
@@ -115,7 +115,7 @@ class SeatBase(BaseModel):
     row: str = Field(..., max_length=5)
     number: int = Field(..., ge=1)
     seat_type: SeatType = SeatType.STANDARD
-    is_active: bool = True  # False = ghế hỏng/lối đi
+    is_active: bool = True  # False = broken seat/aisle
 
 class SeatCreate(SeatBase):
     pass
@@ -128,10 +128,10 @@ class SeatResponse(SeatBase):
 
 class SeatStatus(str, Enum):
     AVAILABLE = "available"
-    BOOKED = "booked"  # Đã đặt (có trong seat_bookings với booking confirmed)
+    BOOKED = "booked"  # Booked (exists in seat_bookings with confirmed booking)
 
 class SeatWithStatusResponse(SeatBase):
-    """Seat response kèm trạng thái cho showtime cụ thể"""
+    """Seat response with status for specific showtime"""
     id: str
     room_id: str
     status: SeatStatus = SeatStatus.AVAILABLE
@@ -144,14 +144,14 @@ class CinemaRoomBase(BaseModel):
     name: str = Field(..., max_length=100)
     
 class CinemaRoomCreate(CinemaRoomBase):
-    # Lồng ghép: Tạo Room kèm danh sách ghế
+    # Nested: Create Room with list of seats
     seats: List[SeatCreate] = Field(default_factory=list)
 
 class CinemaRoomResponse(CinemaRoomBase):
     id: str
     cinema_id: str
     seat_count: int
-    # Lồng ghép: Trả về Room kèm danh sách ghế (để vẽ sơ đồ)
+    # Nested: Return Room with list of seats (for drawing diagram)
     seats: List[SeatResponse] = Field(default_factory=list) 
     class Config:
         from_attributes = True
@@ -167,7 +167,7 @@ class CinemaBase(BaseModel):
     
 class CinemaCreate(CinemaBase):
     pass
-    # Lồng ghép: Tạo Cinema kèm danh sách Rooms
+    # Nested: Create Cinema with list of Rooms
 class AddRoomToCenema(BaseModel):
     cinema_id: str
     rooms: List[CinemaRoomCreate] = Field(default_factory=list)
@@ -183,13 +183,13 @@ class CinemaUpdate(BaseModel):
 
 # ================= ROOM UPDATE SCHEMA =================
 class SeatUpdate(SeatBase):
-    """Schema để cập nhật ghế"""
+    """Schema for updating seats"""
     pass
 
 class CinemaRoomUpdate(BaseModel):
-    """Schema để cập nhật phòng chiếu"""
+    """Schema for updating cinema room"""
     name: Optional[str] = None
-    seats: Optional[List[SeatUpdate]] = None  # Nếu có seats thì sẽ thay thế toàn bộ ghế
+    seats: Optional[List[SeatUpdate]] = None  # If seats provided, will replace all seats
 
 class CinemaResponse(CinemaBase):
     id: str
@@ -197,13 +197,13 @@ class CinemaResponse(CinemaBase):
     is_active: bool
     created_at: datetime
     updated_at: datetime
-    # Lồng ghép: Trả về Cinema kèm danh sách Rooms
+    # Nested: Return Cinema with list of Rooms
     rooms: List[CinemaRoomResponse] = Field(default_factory=list) 
     class Config:
         from_attributes = True
 
 class CinemaBasicResponse(BaseModel):
-    """Cinema info ngắn gọn cho showtime"""
+    """Brief cinema info for showtime"""
     id: str
     name: str
     city: str
@@ -346,8 +346,8 @@ class DashboardResponse(BaseModel):
 # ================== revenue schemas ==================
 class RevenueComparisonRequest(BaseModel):
     period_type: Literal['day', 'month', 'year'] = 'month'
-    start_date: Optional[date] = None  # Optional vì router có thể set default
-    end_date: Optional[date] = None    # Optional vì router có thể set default
+    start_date: Optional[date] = None  # Optional because router can set default
+    end_date: Optional[date] = None    # Optional because router can set default
     comparison_type: Literal['cinema', 'room', 'movie'] = 'cinema'
     limit: int = Field(default=10, ge=1, le=50)
     sort_by: Literal['revenue', 'tickets', 'occupancy'] = 'revenue'

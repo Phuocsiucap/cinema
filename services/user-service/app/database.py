@@ -7,19 +7,19 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Đổi từ postgresql:// sang postgresql+asyncpg://
+# Change from postgresql:// to postgresql+asyncpg://
 DATABASE_URL = os.getenv("DATABASE_URL")
 if DATABASE_URL:
-    # Chuyển sang asyncpg driver
+    # Switch to asyncpg driver
     if DATABASE_URL.startswith("postgresql://"):
         DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
     
-    # Xóa sslmode từ URL vì asyncpg không hỗ trợ
+    # Remove sslmode from URL as asyncpg doesn't support it
     if "sslmode=" in DATABASE_URL:
-        # Tách và xóa sslmode parameter
+        # Split and remove sslmode parameter
         import re
         DATABASE_URL = re.sub(r'[\?&]sslmode=[^&]*', '', DATABASE_URL)
-        # Clean up URL nếu còn dấu ? hoặc & thừa
+        # Clean up URL if there are leftover ? or & characters
         DATABASE_URL = DATABASE_URL.replace('?&', '?').rstrip('?').rstrip('&')
 
 # Async engine với connection pool

@@ -1,6 +1,6 @@
 @echo off
 REM ================================================================
-REM Script khởi chạy tất cả services cho Cinema Booking System
+REM Script to start all services for Cinema Booking System
 REM ================================================================
 
 echo ============================================================
@@ -8,26 +8,26 @@ echo        CINEMA BOOKING SYSTEM - START ALL SERVICES
 echo ============================================================
 echo.
 
-REM Lưu thư mục gốc
+REM Save root directory
 set ROOT_DIR=%~dp0
 
-REM Kiểm tra Python
+REM Check Python
 where python >nul 2>nul
 if %ERRORLEVEL% NEQ 0 (
-    echo [ERROR] Python khong duoc cai dat hoac khong co trong PATH
+    echo [ERROR] Python is not installed or not in PATH
     pause
     exit /b 1
 )
 
-REM Kiểm tra Node.js
+REM Check Node.js
 where node >nul 2>nul
 if %ERRORLEVEL% NEQ 0 (
-    echo [ERROR] Node.js khong duoc cai dat hoac khong co trong PATH
+    echo [ERROR] Node.js is not installed or not in PATH
     pause
     exit /b 1
 )
 
-echo [INFO] Dang khoi dong cac services...
+echo [INFO] Starting services...
 echo.
 
 REM ================================================================
@@ -73,10 +73,10 @@ start "Frontend - Port 5173" cmd /k "cd /d %ROOT_DIR%cinema_frontend && npm run 
 
 echo.
 echo ============================================================
-echo        TAT CA SERVICES DA DUOC KHOI DONG!
+echo        ALL SERVICES HAVE BEEN STARTED!
 echo ============================================================
 echo.
-echo  Services dang chay:
+echo  Running services:
 echo  -----------------------------------------------------------
 echo  [1] User Service:        http://localhost:8001
 echo  [2] Auth Service:        http://localhost:8002
@@ -86,8 +86,8 @@ echo  [5] API Gateway:         http://localhost:8000
 echo  [6] Frontend:            http://localhost:5173
 echo  -----------------------------------------------------------
 echo.
-echo  De dung tat ca services, dong tat ca cua so terminal
-echo  hoac chay file: stop_all.bat
+echo  To stop all services, close all terminal windows
+echo  or run file: stop_all.bat
 echo.
 echo ============================================================
 

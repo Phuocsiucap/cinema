@@ -35,7 +35,7 @@ export interface UpdateUserData {
 const USER_API = '/users';
 
 export const userService = {
-  // Lấy danh sách users với pagination và filters
+  // Get list of users with pagination and filters
   getUsers: async (
     skip: number = 0,
     limit: number = 10,
@@ -61,22 +61,22 @@ export const userService = {
     return api.get<PaginatedUsers>(`${USER_API}/?${params.toString()}`);
   },
 
-  // Lấy thông tin user theo ID
+  // Get user info by ID
   getUser: async (id: string): Promise<User> => {
     return api.get<User>(`${USER_API}/${id}`);
   },
 
-  // Tạo user mới
+  // Create new user
   createUser: async (data: CreateUserData): Promise<User> => {
     return api.post<User>(`${USER_API}/`, data);
   },
 
-  // Cập nhật user
+  // Update user
   updateUser: async (id: string, data: UpdateUserData): Promise<User> => {
     return api.put<User>(`${USER_API}/${id}`, data);
   },
 
-  // Xóa user
+  // Delete user
   deleteUser: async (id: string): Promise<void> => {
     return api.delete(`${USER_API}/${id}`);
   },

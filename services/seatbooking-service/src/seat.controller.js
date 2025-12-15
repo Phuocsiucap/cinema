@@ -58,7 +58,7 @@ export async function lockSeat(req, res) {
         if (failedSeats.length > 0 && lockedSeats.length === 0) {
             return res.status(409).json({ 
                 success: false,
-                message: 'Không thể giữ ghế.',
+                message: 'Cannot hold seats.',
                 failed_seats: failedSeats
             });
         }
@@ -66,7 +66,7 @@ export async function lockSeat(req, res) {
         console.log(`Seats ${lockedSeats.join(', ')} for showtime ${showtime_id} locked by user ${user_id}`);
         res.status(200).json({ 
             success: true,
-            message: 'Giữ ghế thành công.',
+            message: 'Seats held successfully.',
             locked_seats: lockedSeats,
             failed_seats: failedSeats
         });

@@ -59,7 +59,7 @@ export function setupSocketIO(io) {
                 event: "seat_expired",
                 showtime_id,
                 seat_id,
-                message: "Ghế đã hết thời gian giữ"
+                message: "Seat hold time has expired"
             };
 
             io.to(showtime_id).emit("seat_update", data);

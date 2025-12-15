@@ -20,25 +20,25 @@ def convert_to_vn_time(dt: datetime) -> datetime:
     return vn_time.replace(tzinfo=None)
 
 async def create_showtime(db: AsyncSession, data: ShowtimeCreate):
-    # Kiểm tra movie tồn tại
+    # Check if movie exists
     result = await db.execute(select(Movie).filter(Movie.id == data.movie_id))
     movie_db = result.scalar_one_or_none()
     if not movie_db:
         raise HTTPException(status_code=404, detail="Movie not found")
     
-    # Kiểm tra room tồn tại
+    # Check if room exists
     result = await db.execute(select(CinemaRoom).filter(CinemaRoom.id == data.room_id))
     room_db = result.scalar_one_or_none()
     if not room_db:
         raise HTTPException(status_code=404, detail="Cinema room not found")
     
-    # Chuyển start_time sang giờ Việt Nam (UTC+7)
+    # Convert start_time to Vietnam time (UTC+7)
     start_time_vn = convert_to_vn_time(data.start_time)
     
-    # Tính end_time
+    # Calculate end_time
     end_time = start_time_vn + timedelta(minutes=movie_db.duration_minutes)
     
-    # Tìm kiếm xung đột (cộng thêm 15 phút buffer)
+    # Find conflicts (add 15 minute buffer)
     result = await db.execute(
         select(Showtime)
         .filter(
@@ -51,7 +51,7 @@ async def create_showtime(db: AsyncSession, data: ShowtimeCreate):
     if conflict_showtime:
         raise HTTPException(status_code=400, detail="Showtime conflicts with existing showtimes in the same room")
     
-    # Tạo showtime với end_time
+    # Create showtime with end_time
     new_showtime = Showtime(
         movie_id=data.movie_id,
         room_id=data.room_id,
@@ -64,7 +64,7 @@ async def create_showtime(db: AsyncSession, data: ShowtimeCreate):
     await db.commit()
     await db.refresh(new_showtime)
     
-    # Load relationships để trả về response đầy đủ
+    # Load relationships to return full response
     result = await db.execute(
         select(Showtime)
         .filter(Showtime.id == new_showtime.id)
@@ -148,7 +148,7 @@ async def update_showtime(db: AsyncSession, showtime_id: str, data: ShowtimeUpda
     
     update_data = data.model_dump(exclude_unset=True)
     
-    # Nếu thay đổi start_time hoặc movie, cần tính lại end_time
+    # If changing start_time or movie, need to recalculate end_time
     if 'start_time' in update_data or 'movie_id' in update_data:
         movie_id = update_data.get('movie_id', showtime.movie_id)
         result = await db.execute(select(Movie).filter(Movie.id == movie_id))
@@ -164,7 +164,7 @@ async def update_showtime(db: AsyncSession, showtime_id: str, data: ShowtimeUpda
     
     await db.commit()
     
-    # Reload với relationships
+    # Reload with relationships
     result = await db.execute(
         select(Showtime)
         .filter(Showtime.id == showtime_id)
@@ -187,9 +187,9 @@ async def delete_showtime(db: AsyncSession, showtime_id: str) -> bool:
 
 
 async def get_seats_with_status(db: AsyncSession, showtime_id: str) -> List[SeatWithStatusResponse]:
-    """Lấy danh sách ghế của showtime kèm trạng thái đã đặt"""
+    """Get list of seats for showtime with booking status"""
     
-    # Kiểm tra showtime tồn tại và lấy room_id
+    # Check if showtime exists and get room_id
     result = await db.execute(
         select(Showtime)
         .filter(Showtime.id == showtime_id)
@@ -199,7 +199,7 @@ async def get_seats_with_status(db: AsyncSession, showtime_id: str) -> List[Seat
     if not showtime:
         raise HTTPException(status_code=404, detail="Showtime not found")
     
-    # Lấy danh sách seat_id đã được đặt (booking confirmed hoặc pending)
+    # Get list of seat_ids that are booked (booking confirmed or pending)
     booked_result = await db.execute(
         select(SeatBooking.seat_id)
         .join(Booking, SeatBooking.booking_id == Booking.id)
@@ -210,7 +210,7 @@ async def get_seats_with_status(db: AsyncSession, showtime_id: str) -> List[Seat
     )
     booked_seat_ids = set(row[0] for row in booked_result.fetchall())
     
-    # Map ghế với trạng thái
+    # Map seats with status
     seats_with_status = []
     for seat in showtime.room.seats:
         status = SeatStatus.BOOKED if seat.id in booked_seat_ids else SeatStatus.AVAILABLE

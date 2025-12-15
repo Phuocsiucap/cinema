@@ -12,7 +12,7 @@ load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Create tables và kiểm tra kết nối
+    # Startup: Create tables and check connection
     await create_tables()
     connection_ok = await check_database_connection()
     if not connection_ok:
