@@ -11,6 +11,7 @@ from app.routers.actors import router as actors_router
 from app.routers.show_times import router as showtimes_router
 from app.routers.dashboard import router as dashboard_router
 from app.routers.revenue import router as revenue_router
+from app.routers.advertisements import router as advertisements_router
 
 from app.database import Base, engine
 
@@ -42,6 +43,7 @@ def create_app() -> FastAPI:
     app.include_router(showtimes_router, prefix="/api/v1/showtimes", tags=["Showtime"])
     app.include_router(dashboard_router, prefix="/api/v1/dashboard", tags=["Dashboard"])
     app.include_router(revenue_router, prefix="/api/v1/revenue", tags=["Revenue"])
+    app.include_router(advertisements_router, prefix="/api/v1/advertisements", tags=["Advertisements"])
     
     @app.get("/health")
     def health_check():

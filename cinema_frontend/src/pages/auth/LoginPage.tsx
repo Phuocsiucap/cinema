@@ -2,16 +2,15 @@ import { useState, type FormEvent, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthLayout } from '../../components/layouts/AuthLayout';
 import { Input, Button, Divider } from '../../components/ui';
-import { SocialButton } from '../../components/ui/SocialButton';
-import { GoogleIcon, GithubIcon, MicrosoftIcon } from '../../components/icons';
-import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
+import { GoogleOAuthProvider } from '@react-oauth/google';
+import { OAuthButtons } from '../../components/auth/OAuthButtons';
 import { useAuth } from '../../contexts/AuthContext';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const { user, login, loginWithGoogleToken, loginWithGithubCode, loginWithGithub, loginWithMicrosoft, isLoading, error, clearError } = useAuth();
+  const { user, login, loginWithGithubCode, isLoading, error, clearError } = useAuth();
   const githubCodeProcessed = useRef(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -38,33 +37,22 @@ export function LoginPage() {
     }
   }, [user, isLoading, navigate]);
 
-  // --- CẬP NHẬT: Handle GitHub OAuth callback cho BrowserRouter ---
+  // Handle GitHub OAuth callback
   useEffect(() => {
-    // 1. Lấy code từ URL sạch sẽ (?code=...)
     const searchParams = new URLSearchParams(window.location.search);
     const code = searchParams.get('code');
 
-    // 2. Kiểm tra nếu có code VÀ chưa từng xử lý
     if (code && !githubCodeProcessed.current) {
       console.log("Detect GitHub Code:", code);
-      
-      // Đánh dấu là đã xử lý ngay lập tức để chặn lần gọi thứ 2
       githubCodeProcessed.current = true;
 
       const executeGithubLogin = async () => {
         try {
-          // 3. Gọi API Backend
           await loginWithGithubCode(code);
-          
-          // 4. Xóa code khỏi URL để nhìn cho chuyên nghiệp (giữ lại /login)
           window.history.replaceState({}, document.title, window.location.pathname);
-
-          // Navigation sẽ được handle tự động khi user state thay đổi
-          
         } catch (error: any) {
           console.error('Lỗi login GitHub:', error);
           alert('Đăng nhập thất bại: ' + (error.message || "Unknown error"));
-          // Xóa code lỗi để người dùng không bấm F5 bị lỗi tiếp
           window.history.replaceState({}, document.title, window.location.pathname);
         }
       };
@@ -72,7 +60,6 @@ export function LoginPage() {
       executeGithubLogin();
     }
   }, [loginWithGithubCode, navigate]);
-  // -------------------------------------------------------------
 
   const validateForm = () => {
     const errors = { email: '', password: '' };
@@ -112,7 +99,7 @@ export function LoginPage() {
     if (!validateForm()) return;
     try {
       await login(formData);
-    } catch {}
+    } catch { }
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -125,35 +112,7 @@ export function LoginPage() {
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <AuthLayout title="Welcome back" subtitle="Log in to your account">
-        <div className="space-y-3">
-          <GoogleLogin
-            onSuccess={async (credentialResponse) => {
-              try {
-                await loginWithGoogleToken(credentialResponse.credential!);
-              } catch (error) {
-                console.error('Google login failed:', error);
-              }
-            }}
-            onError={() => console.log('Login Failed')}
-            theme="filled_black"
-            size="large"
-            text="signin_with"
-            shape="rectangular"
-            width="400"
-          />
-          
-          {/* --- CẬP NHẬT: Nút GitHub cho BrowserRouter --- */}
-          <SocialButton 
-            icon={<GithubIcon />}
-            onClick={loginWithGithub}
-          >
-            GitHub
-          </SocialButton>
-          
-          <SocialButton icon={<MicrosoftIcon />} onClick={loginWithMicrosoft} disabled>
-            Microsoft (Coming Soon)
-          </SocialButton>
-        </div>
+        <OAuthButtons mode="login" />
 
         <Divider text="or continue with email" />
 

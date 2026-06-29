@@ -33,9 +33,9 @@ echo.
 REM ================================================================
 REM 1. Start User Service (Port 8001)
 REM ================================================================
-REM echo [1/6] Starting User Service (Port 8001)...
-REM start "User Service - Port 8001" cmd /k "cd /d %ROOT_DIR%services\user-service\app && python main.py"
-REM timeout /t 2 /nobreak >nul
+echo [1/6] Starting User Service (Port 8001)...
+start "User Service - Port 8001" cmd /k "cd /d %ROOT_DIR%services\user-service\app && python main.py"
+timeout /t 2 /nobreak >nul
 
 REM ================================================================
 REM 2. Start Auth Service (Port 8002)

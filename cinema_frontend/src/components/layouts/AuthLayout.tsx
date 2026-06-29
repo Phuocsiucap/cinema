@@ -2,6 +2,8 @@ import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import { advertisementService } from '../../services/advertisementService';
+import type { AuthBackground } from '../../types/advertisement';
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -10,12 +12,37 @@ interface AuthLayoutProps {
 }
 
 export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
+  const [authBackgrounds, setAuthBackgrounds] = useState<AuthBackground[]>([]);
+  const [currentBackground, setCurrentBackground] = useState<AuthBackground | null>(null);
   const [bgIndex, setBgIndex] = useState<number>(0);
 
+  // Fetch auth backgrounds
   useEffect(() => {
-    const interval = setInterval(() => setBgIndex((prev) => (prev === 0 ? 1 : 0)), 10000);
-    return () => clearInterval(interval);
+    const fetchAuthBackgrounds = async () => {
+      try {
+        const backgrounds = await advertisementService.getAuthBackgrounds(true);
+        setAuthBackgrounds(backgrounds);
+        if (backgrounds.length > 0) {
+          setCurrentBackground(backgrounds[0]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch auth backgrounds:', error);
+      }
+    };
+
+    fetchAuthBackgrounds();
   }, []);
+
+  // Auto-rotate backgrounds
+  useEffect(() => {
+    const totalImages = authBackgrounds.length > 0 ? authBackgrounds.length : 2; // Fallback to 2 static images
+
+    const interval = setInterval(() => {
+      setBgIndex((prev) => (prev + 1) % totalImages);
+    }, 5000); // Change every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [authBackgrounds.length]);
 
   return (
     <div className="min-h-screen bg-gray-950 flex">
@@ -23,42 +50,58 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gray-900">
         {/* Background Images Layer - fade between them */}
         <div className="absolute inset-0 z-0">
-          <img
-            src="/img/authbackground1.png"
-            alt="Cinema background 1"
-            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-[2000ms] ease-in-out ${
-              bgIndex === 0 ? 'opacity-100' : 'opacity-0'
-            }`}
-          />
-          <img
-            src="/img/authbackground2.png"
-            alt="Cinema background 2"
-            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-[2000ms] ease-in-out ${
-              bgIndex === 1 ? 'opacity-100' : 'opacity-0'
-            }`}
-          />
+          {authBackgrounds.length > 0 ? (
+            authBackgrounds.map((bg, index) => (
+              <img
+                key={bg.id}
+                src={bg.image_url}
+                alt={bg.title || `Background ${index + 1}`}
+                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-[2000ms] ease-in-out ${
+                  index === bgIndex ? 'opacity-100' : 'opacity-0'
+                }`}
+              />
+            ))
+          ) : (
+            // Fallback static images if no backgrounds from API
+            <>
+              <img
+                src="/img/authbackground1.png"
+                alt="Cinema background 1"
+                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-[2000ms] ease-in-out ${
+                  bgIndex === 0 ? 'opacity-100' : 'opacity-0'
+                }`}
+              />
+              <img
+                src="/img/authbackground2.png"
+                alt="Cinema background 2"
+                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-[2000ms] ease-in-out ${
+                  bgIndex === 1 ? 'opacity-100' : 'opacity-0'
+                }`}
+              />
+            </>
+          )}
         </div>
 
         {/* Background Pattern / overlay - Made semi-transparent */}
         <div className="absolute inset-0 bg-gradient-to-br from-gray-900/70 via-gray-950/60 to-black/80 z-10">
           {/* Decorative Elements with Animations */}
-          <div className="absolute top-20 left-10 w-20 h-20 border border-green-500/30 rounded-lg transform rotate-12 animate-pulse" />
-          <div className="absolute top-40 left-32 w-16 h-16 border border-green-500/20 rounded-lg transform -rotate-6 animate-bounce" style={{ animationDuration: '3s' }} />
-          <div className="absolute top-60 left-16 w-12 h-12 bg-green-500/10 rounded-lg animate-pulse" style={{ animationDelay: '1s' }} />
-          <div className="absolute bottom-40 left-20 w-24 h-24 border border-green-500/20 rounded-lg transform rotate-45 animate-spin" style={{ animationDuration: '20s' }} />
-          <div className="absolute bottom-20 left-40 w-8 h-8 bg-green-500/20 rounded-lg animate-bounce" style={{ animationDuration: '4s', animationDelay: '0.5s' }} />
+          <div className="absolute top-20 left-10 w-20 h-20 border border-gray-500/30 rounded-lg transform rotate-12 animate-pulse" />
+          <div className="absolute top-40 left-32 w-16 h-16 border border-gray-500/20 rounded-lg transform -rotate-6 animate-bounce" style={{ animationDuration: '3s' }} />
+          <div className="absolute top-60 left-16 w-12 h-12 bg-gray-500/10 rounded-lg animate-pulse" style={{ animationDelay: '1s' }} />
+          <div className="absolute bottom-40 left-20 w-24 h-24 border border-gray-500/20 rounded-lg transform rotate-45 animate-spin" style={{ animationDuration: '20s' }} />
+          <div className="absolute bottom-20 left-40 w-8 h-8 bg-gray-500/20 rounded-lg animate-bounce" style={{ animationDuration: '4s', animationDelay: '0.5s' }} />
           
           {/* Floating Particles */}
-          <div className="absolute top-1/4 right-20 w-2 h-2 bg-green-400/40 rounded-full animate-ping" />
-          <div className="absolute top-1/3 right-40 w-3 h-3 bg-green-400/30 rounded-full animate-pulse" style={{ animationDelay: '2s' }} />
-          <div className="absolute bottom-1/3 right-32 w-2 h-2 bg-green-400/50 rounded-full animate-ping" style={{ animationDelay: '1.5s' }} />
+          <div className="absolute top-1/4 right-20 w-2 h-2 bg-gray-400/40 rounded-full animate-ping" />
+          <div className="absolute top-1/3 right-40 w-3 h-3 bg-gray-400/30 rounded-full animate-pulse" style={{ animationDelay: '2s' }} />
+          <div className="absolute bottom-1/3 right-32 w-2 h-2 bg-gray-400/50 rounded-full animate-ping" style={{ animationDelay: '1.5s' }} />
         </div>
         
         {/* Content */}
         <div className="relative z-20 flex flex-col justify-center px-16">
           {/* Logo */}
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-14 h-14 bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center">
+            <div className="w-14 h-14 bg-gradient-to-br from-gray-700 to-gray-900 rounded-xl flex items-center justify-center">
               <span className="text-2xl font-bold text-white">C</span>
             </div>
           </div>
@@ -67,7 +110,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
           <h1 className="text-4xl lg:text-5xl font-bold text-white leading-tight">
             Your Ultimate
             <br />
-            <span className="text-green-400">Cinema Experience</span>
+            <span className="text-gray-300">Cinema Experience</span>
           </h1>
           
           <p className="mt-6 text-gray-400 text-lg max-w-md">

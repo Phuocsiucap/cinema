@@ -86,3 +86,36 @@ class PaginatedUsersResponse(BaseModel):
     total: int
     skip: int
     limit: int
+
+
+class TypeBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    is_active: Optional[bool] = True
+
+
+class TypeCreate(TypeBase):
+    pass
+
+
+class TypeUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class TypeResponse(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+
+
+class PaginatedTypesResponse(BaseModel):
+    types: List[TypeResponse]
+    total: int
+    skip: int
+    limit: int

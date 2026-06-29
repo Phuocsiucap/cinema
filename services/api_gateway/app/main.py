@@ -16,6 +16,7 @@ from app.routes.dashboard_routes import router as dashboard_router
 from app.routes.promotion_routes import router as promotion_router
 from app.routes.revenue_routes import router as revenue_router
 from app.routes.upload_routes import router as upload_router
+from app.routes.advertisement_routes import router as advertisement_router
 # from aroutes.order_routes import router as order_router
 load_dotenv()
 app = FastAPI(title="API Gateway")
@@ -41,6 +42,7 @@ app.include_router(dashboard_router, prefix="/api/v1/dashboard")
 app.include_router(promotion_router, prefix="/api/v1/promotions")
 app.include_router(revenue_router, prefix="/api/v1/revenue")
 app.include_router(upload_router, prefix="/api/v1/upload")
+app.include_router(advertisement_router, prefix="/api/v1/advertisements")
 
 
 @app.get("/health")

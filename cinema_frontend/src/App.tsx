@@ -1,17 +1,19 @@
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, AdsProvider } from './contexts';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { EmailVerification } from './components/EmailVerification';
-import { HomePage, MovieDetailPage, LoginPage, RegisterPage, AuthCallbackPage, ForgotPasswordPage, ResetPasswordPage, MovieBookingPage, SeatSelectionPage, PaymentPage, MyTicketsPage, AboutPage, PoliciesPage, ContactPage} from './pages';
+import { HomePage, MovieDetailPage, LoginPage, RegisterPage, AuthCallbackPage, ForgotPasswordPage, ResetPasswordPage, MovieBookingPage, SeatSelectionPage, PaymentPage, MyTicketsPage, AboutPage, PoliciesPage, ContactPage } from './pages';
 import { PromotionsPage } from './pages';
 import { AdminDashboardPage, AddMoviePage, MoviesPage as AdminMoviesPage, EditMoviePage, AddCinemaPage, CinemasPage as AdminCinemasPage, AddRoomsPage, EditCinemaPage, EditRoomPage, UsersPage, EditUserPage, ShowtimesPage, ManageTicketsPage, PromotionsPage as AdminPromotionsPage, AddPromotionPage, EditPromotionPage, RevenuePage } from './pages/admin';
 import { MoviesPage as PublicMoviesPage, CinemasPage as PublicCinemasPage } from './pages';
+import { MediaManagementPage } from './pages/admin/MediaManagementPage';
 import { useEffect } from 'react';
 
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <AdsProvider>
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/movie/:id" element={<MovieDetailPage />} />
@@ -27,13 +29,13 @@ function App() {
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/auth/callback" element={<AuthCallbackPage />} />
             <Route path="/verify-email" element={<ProtectedRoute requireVerification={false}><EmailVerification /></ProtectedRoute>} />
-            
+
             {/* Booking Routes - Require Login */}
             <Route path="/booking/:id" element={<ProtectedRoute><MovieBookingPage /></ProtectedRoute>} />
             <Route path="/booking/seats/:showtimeId" element={<ProtectedRoute><SeatSelectionPage /></ProtectedRoute>} />
             <Route path="/booking/payment" element={<ProtectedRoute><PaymentPage /></ProtectedRoute>} />
             <Route path="/my-tickets" element={<ProtectedRoute><MyTicketsPage /></ProtectedRoute>} />
-            
+
             {/* Admin Routes - Require Admin Login (no email verification for admins) */}
             <Route path="/admin" element={<ProtectedRoute adminOnly requireVerification={false}><AdminDashboardPage /></ProtectedRoute>} />
             <Route path="/admin/movies" element={<ProtectedRoute adminOnly requireVerification={false}><AdminMoviesPage /></ProtectedRoute>} />
@@ -51,8 +53,10 @@ function App() {
             <Route path="/admin/promotions" element={<ProtectedRoute adminOnly requireVerification={false}><AdminPromotionsPage /></ProtectedRoute>} />
             <Route path="/admin/promotions/add" element={<ProtectedRoute adminOnly requireVerification={false}><AddPromotionPage /></ProtectedRoute>} />
             <Route path="/admin/promotions/edit/:id" element={<ProtectedRoute adminOnly requireVerification={false}><EditPromotionPage /></ProtectedRoute>} />
+            <Route path="/admin/media" element={<ProtectedRoute adminOnly requireVerification={false}><MediaManagementPage /></ProtectedRoute>} />
             <Route path="/admin/revenue" element={<ProtectedRoute adminOnly requireVerification={false}><RevenuePage /></ProtectedRoute>} />
           </Routes>
+        </AdsProvider>
       </BrowserRouter>
     </AuthProvider>
   );

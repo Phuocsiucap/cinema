@@ -5,3 +5,6 @@ export { Divider } from './Divider';
 export { ConfirmModal } from './ConfirmModal';
 export { default as TrailerModal } from './TrailerModal';
 export { QRScannerModal } from './QRScannerModal';
+export { default as AdsModal } from './AdsModal';
+export { default as ProgressBar } from './ProgressBar';
+export { MediaInput } from './MediaInput';

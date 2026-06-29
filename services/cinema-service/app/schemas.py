@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import List, Optional, Literal, Union
 from datetime import date, datetime
 from enum import Enum
@@ -406,3 +406,101 @@ class RevenueDetailResponse(BaseModel):
     total_revenue: float
     total_tickets: int
     data: List[RevenueDetailItem]
+
+
+# ================== advertisement schemas ==================
+
+# Banner Schemas
+class BannerBase(BaseModel):
+    image_url: str = Field(..., max_length=500, description="URL of the banner image")
+    text: Optional[str] = Field(None, max_length=500, description="Optional text overlay on the banner")
+    link_type: Optional[Literal['movie', 'cinema']] = Field(None, description="Type of link: 'movie' or 'cinema'")
+    movie_id: Optional[str] = Field(None, description="Movie ID if link_type is 'movie'")
+    cinema_id: Optional[str] = Field(None, description="Cinema ID if link_type is 'cinema'")
+    is_active: bool = Field(True, description="Whether the banner is active")
+    display_order: int = Field(0, description="Display order for banner sorting")
+
+    @model_validator(mode='after')
+    def validate_link_consistency(self):
+        """Validate that link_type is consistent with provided IDs"""
+        if self.link_type == 'movie' and not self.movie_id:
+            raise ValueError("movie_id is required when link_type is 'movie'")
+        if self.link_type == 'cinema' and not self.cinema_id:
+            raise ValueError("cinema_id is required when link_type is 'cinema'")
+        if self.link_type is None and (self.movie_id or self.cinema_id):
+            raise ValueError("link_type must be specified when movie_id or cinema_id is provided")
+        return self
+
+class BannerCreate(BannerBase):
+    pass
+
+class BannerUpdate(BaseModel):
+    image_url: Optional[str] = Field(None, max_length=500)
+    text: Optional[str] = Field(None, max_length=500)
+    link_type: Optional[Literal['movie', 'cinema']] = None
+    movie_id: Optional[str] = None
+    cinema_id: Optional[str] = None
+    is_active: Optional[bool] = None
+    display_order: Optional[int] = None
+
+class BannerResponse(BannerBase):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+# AuthBackground Schemas
+class AuthBackgroundBase(BaseModel):
+    image_url: str = Field(..., max_length=500)
+    title: Optional[str] = Field(None, max_length=200)
+    is_active: bool = True
+    display_order: int = 0
+
+class AuthBackgroundCreate(AuthBackgroundBase):
+    pass
+
+class AuthBackgroundUpdate(BaseModel):
+    image_url: Optional[str] = Field(None, max_length=500)
+    title: Optional[str] = Field(None, max_length=200)
+    is_active: Optional[bool] = None
+    display_order: Optional[int] = None
+
+class AuthBackgroundResponse(AuthBackgroundBase):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+# PosterAd Schemas
+class PosterAdBase(BaseModel):
+    poster_url: str = Field(..., max_length=500)
+    movie_id: str
+    title: Optional[str] = Field(None, max_length=200)
+    description: Optional[str] = Field(None, max_length=500)
+    is_active: bool = True
+    display_order: int = 0
+
+class PosterAdCreate(PosterAdBase):
+    pass
+
+class PosterAdUpdate(BaseModel):
+    poster_url: Optional[str] = Field(None, max_length=500)
+    movie_id: Optional[str] = None
+    title: Optional[str] = Field(None, max_length=200)
+    description: Optional[str] = Field(None, max_length=500)
+    is_active: Optional[bool] = None
+    display_order: Optional[int] = None
+
+class PosterAdResponse(PosterAdBase):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True

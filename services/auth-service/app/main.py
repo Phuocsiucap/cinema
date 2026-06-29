@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 # Import các router và database
 from app.routers.auth import router as auth_router
 from app.routers.users import router as users_router
+from app.routers.types import router as types_router
 from app.database import Base, engine
 
 load_dotenv()
@@ -38,6 +39,7 @@ def create_app() -> FastAPI:
     # --- 3. ĐĂNG KÝ ROUTER ---
     app.include_router(auth_router, prefix="/api/v1/auth", tags=["Authentication"])
     app.include_router(users_router, prefix="/api/v1/users", tags=["Users"])
+    app.include_router(types_router, prefix="/api/v1/types", tags=["Types"])
     
     # --- 4. HEALTH CHECK ---
     @app.get("/health")

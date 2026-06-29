@@ -15,6 +15,7 @@ import {
 import { MainLayout } from '../components/layouts';
 import { promotionService, type Promotion } from '../services/promotionService';
 import { movieService } from '../services/movieService';
+import { ProgressBar } from '../components/ui';
 
 export function PromotionsPage() {
   const [promotions, setPromotions] = useState<Promotion[]>([]);
@@ -216,9 +217,8 @@ export function PromotionsPage() {
                 return (
                   <div
                     key={promo.id}
-                    className={`bg-[#1a1a2e] border rounded-xl overflow-hidden hover:scale-[1.02] transition-all ${
-                      isLimited ? 'border-gray-700 opacity-60' : 'border-gray-700 hover:border-red-500/50'
-                    }`}
+                    className={`bg-[#1a1a2e] border rounded-xl overflow-hidden hover:scale-[1.02] transition-all flex flex-col h-full ${isLimited ? 'border-gray-700 opacity-60' : 'border-gray-700 hover:border-red-500/50'
+                      }`}
                   >
                     {/* Banner */}
                     {promo.banner_url ? (
@@ -236,7 +236,7 @@ export function PromotionsPage() {
                     )}
 
                     {/* Content */}
-                    <div className="p-5">
+                    <div className="p-5 flex-1 flex flex-col">
                       {/* Title & Badge */}
                       <div className="flex items-start justify-between gap-2 mb-3">
                         <h3 className="text-lg font-bold text-white line-clamp-2 flex-1">
@@ -284,8 +284,8 @@ export function PromotionsPage() {
                         {promo.applicable_items && promo.applicable_items.length > 0 && (
                           <div>
                             <p>• Applies to {promo.applicable_items.length} specific {
-                              promo.applicable_to === 'MOVIES' ? 'movies' : 
-                              promo.applicable_to === 'COMBOS' ? 'combos' : 'tickets'
+                              promo.applicable_to === 'MOVIES' ? 'movies' :
+                                promo.applicable_to === 'COMBOS' ? 'combos' : 'tickets'
                             }:</p>
                             {promo.applicable_to === 'MOVIES' && (
                               <div className="ml-4 mt-1 space-y-0.5">
@@ -308,9 +308,13 @@ export function PromotionsPage() {
                           </div>
                         )}
                         {promo.usage_limit && (
-                          <p>
-                            • Used: {promo.used_count}/{promo.usage_limit}
-                          </p>
+                          <div className="mt-3">
+                            <ProgressBar
+                              current={promo.used_count}
+                              total={promo.usage_limit}
+                              className="mb-2"
+                            />
+                          </div>
                         )}
                       </div>
 
@@ -325,7 +329,7 @@ export function PromotionsPage() {
                       )}
 
                       {/* Code */}
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 mt-auto">
                         <div className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg">
                           <p className="text-xs text-gray-400 mb-1">Promo Code</p>
                           <p className="text-white font-mono font-bold tracking-wider">
@@ -335,13 +339,12 @@ export function PromotionsPage() {
                         <button
                           onClick={() => copyCode(promo.code)}
                           disabled={!!isLimited}
-                          className={`p-3 rounded-lg transition-colors ${
-                            isLimited
-                              ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                              : copiedCode === promo.code
+                          className={`p-3 rounded-lg transition-colors ${isLimited
+                            ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                            : copiedCode === promo.code
                               ? 'bg-green-500 text-white'
                               : 'bg-red-500 hover:bg-red-600 text-white'
-                          }`}
+                            }`}
                         >
                           {copiedCode === promo.code ? (
                             <CheckCircle2 size={20} />
@@ -370,7 +373,7 @@ export function PromotionsPage() {
               <div>
                 <h4 className="text-white font-semibold mb-2">How to use promotion code</h4>
                 <p className="text-gray-300 text-sm">
-                  Copy the promotion code using the copy button above, then enter the code at checkout to get the discount. 
+                  Copy the promotion code using the copy button above, then enter the code at checkout to get the discount.
                   Each code can be applied maximum 1 time per order.
                 </p>
               </div>

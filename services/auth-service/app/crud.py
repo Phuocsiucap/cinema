@@ -3,7 +3,7 @@ from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_
 from typing import Optional, List, Tuple
-from app.models import Token, User
+from app.models import Token, User, Type
 from app import schemas
 import uuid
 
@@ -155,5 +155,85 @@ async def delete_user(db: AsyncSession, user_id: str) -> bool:
         return False
 
     await db.delete(db_user)
+    await db.commit()
+    return True
+
+
+async def get_type_by_name(db: AsyncSession, name: str) -> Optional[Type]:
+    result = await db.execute(select(Type).filter(Type.name == name))
+    return result.scalar_one_or_none()
+
+
+async def create_type(db: AsyncSession, type_data: schemas.TypeCreate) -> Type:
+    db_type = Type(
+        name=type_data.name,
+        description=type_data.description,
+        is_active=type_data.is_active if type_data.is_active is not None else True,
+    )
+    db.add(db_type)
+    await db.commit()
+    await db.refresh(db_type)
+    return db_type
+
+
+async def get_type(db: AsyncSession, type_id: int) -> Optional[Type]:
+    result = await db.execute(select(Type).filter(Type.id == type_id))
+    return result.scalar_one_or_none()
+
+
+async def get_types_paginated(
+    db: AsyncSession,
+    skip: int = 0,
+    limit: int = 10,
+    search: Optional[str] = None,
+    is_active: Optional[bool] = None,
+) -> Tuple[List[Type], int]:
+    query = select(Type)
+    count_query = select(func.count(Type.id))
+
+    if search:
+        search_pattern = f"%{search}%"
+        search_filter = or_(
+            Type.name.ilike(search_pattern),
+            Type.description.ilike(search_pattern),
+        )
+        query = query.filter(search_filter)
+        count_query = count_query.filter(search_filter)
+
+    if is_active is not None:
+        query = query.filter(Type.is_active == is_active)
+        count_query = count_query.filter(Type.is_active == is_active)
+
+    total_result = await db.execute(count_query)
+    total = total_result.scalar() or 0
+
+    query = query.order_by(Type.created_at.desc()).offset(skip).limit(limit)
+    result = await db.execute(query)
+    types = result.scalars().all()
+
+    return list(types), total
+
+
+async def update_type(db: AsyncSession, type_id: int, type_update: schemas.TypeUpdate) -> Optional[Type]:
+    db_type = await get_type(db, type_id)
+    if not db_type:
+        return None
+
+    update_data = type_update.model_dump(exclude_unset=True)
+
+    for field, value in update_data.items():
+        setattr(db_type, field, value)
+
+    await db.commit()
+    await db.refresh(db_type)
+    return db_type
+
+
+async def delete_type(db: AsyncSession, type_id: int) -> bool:
+    db_type = await get_type(db, type_id)
+    if not db_type:
+        return False
+
+    await db.delete(db_type)
     await db.commit()
     return True

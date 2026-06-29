@@ -8,12 +8,13 @@ interface MainLayoutProps {
 
 export function MainLayout({ children }: MainLayoutProps) {
   return (
-    <div className="min-h-screen bg-gray-950 flex flex-col">
+    <div className="min-h-screen bg-background-dark dark flex flex-col">
       <Header />
-      <main className="flex-1">
+      <main className="flex-1 pt-20">
         {children}
       </main>
       <Footer />
     </div>
   );
 }
+

@@ -186,3 +186,65 @@ class User(Base):
   
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# --- ADVERTISEMENT MODELS ---
+
+class Banner(Base):
+    """Banner advertisements for homepage"""
+    __tablename__ = "banners"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()), index=True)
+    image_url = Column(String(500), nullable=False)
+    text = Column(String(500), nullable=True)
+    
+    # Link can be to either a movie or cinema
+    link_type = Column(String(20), nullable=True)  # 'movie' or 'cinema'
+    movie_id = Column(String(36), ForeignKey("movies.id"), nullable=True)
+    cinema_id = Column(String(36), ForeignKey("cinemas.id"), nullable=True)
+    
+    is_active = Column(Boolean, default=True)
+    display_order = Column(Integer, default=0)  # For ordering banners
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    movie = relationship("Movie")
+    cinema = relationship("Cinema")
+
+
+class AuthBackground(Base):
+    """Background images for authentication pages (login/register)"""
+    __tablename__ = "auth_backgrounds"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()), index=True)
+    image_url = Column(String(500), nullable=False)
+    title = Column(String(200), nullable=True)  # Optional title for the background
+    
+    is_active = Column(Boolean, default=True)
+    display_order = Column(Integer, default=0)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class PosterAd(Base):
+    """Poster advertisements with links to movies"""
+    __tablename__ = "poster_ads"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()), index=True)
+    poster_url = Column(String(500), nullable=False)
+    movie_id = Column(String(36), ForeignKey("movies.id"), nullable=False)
+    
+    title = Column(String(200), nullable=True)  # Optional custom title
+    description = Column(String(500), nullable=True)  # Optional description
+    
+    is_active = Column(Boolean, default=True)
+    display_order = Column(Integer, default=0)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationship
+    movie = relationship("Movie")
