@@ -80,7 +80,7 @@ export function HomePage() {
       </main>
 
       {/* Test button for ads - chỉ hiển thị trong development */}
-      {process.env.NODE_ENV === 'development' && (
+      {import.meta.env.VITE_SHOW_TEST_ADS === 'true' && (
         <div className="fixed bottom-4 right-4 z-50">
           <button
             onClick={testShowAds}
