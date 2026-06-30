@@ -18,7 +18,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app/ ./app/
 
 # Set default port (Render sẽ override bằng environment variable)
-ENV PORT=10000
+ENV PORT=8002
 
 # Expose the port
 EXPOSE $PORT
