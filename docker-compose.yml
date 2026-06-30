@@ -3,17 +3,18 @@ version: '3.8'
 services:
   # API Gateway
   api-gateway:
-    build: ./api_gateway
+    build: ./services/api_gateway
     restart: unless-stopped
     ports:
       - "${GATEWAY_PORT:-8000}:8000"
     env_file:
-      - ./api_gateway/.env
-      
+      - ./services/api_gateway/.env
     depends_on:
       - auth-service
       - cinema-service
       - seatbooking-service
+    networks:
+      - cinema-network
       
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:${GATEWAY_PORT:-8000}/health"]
@@ -27,8 +28,8 @@ services:
     restart: unless-stopped
     env_file:
       - ./services/auth-service/.env
-    # Removed ports binding for security (internal communication only)
-      
+    networks:
+      - cinema-network
     healthcheck:
       test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:${AUTH_SERVICE_PORT:-8002}/health')"]
       interval: 30s
@@ -41,8 +42,8 @@ services:
     restart: unless-stopped
     env_file:
       - ./services/cinema-service/.env
-    # Removed ports binding for security (internal communication only)
-  
+    networks:
+      - cinema-network  
     healthcheck:
       test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:${CINEMA_SERVICE_PORT:-8003}/health')"]
       interval: 30s
@@ -51,12 +52,12 @@ services:
 
   # Seat Booking Service
   seatbooking-service:
-    build: ./seatbooking-service
+    build: ./services/seatbooking-service
     restart: unless-stopped
     env_file:
-      - ./seatbooking-service/.env
-    # Removed ports binding for security (internal communication only)
-    
+      - ./services/seatbooking-service/.env
+    networks:
+      - cinema-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:${SEATBOOKING_SERVICE_PORT:-8004}/health"]
       interval: 30s
@@ -69,6 +70,8 @@ services:
     restart: unless-stopped
     ports:
       - "3000:80"
+    networks:
+      - cinema-network
     depends_on:
       - api-gateway
     healthcheck:
@@ -77,4 +80,6 @@ services:
       timeout: 10s
       retries: 3
 
-
+networks:
+  cinema-network:
+    external: true
